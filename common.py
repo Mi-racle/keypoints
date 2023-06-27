@@ -25,6 +25,3 @@ class Resnet(nn.Module):
 
     def forward(self, x):
         return self.resnet(x)
-
-
-model = Resnet(18)
