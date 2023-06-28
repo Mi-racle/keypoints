@@ -1,21 +1,30 @@
 from pathlib import Path
 from typing import Union
+from torchvision import transforms
+import os
 
+from PIL import Image
 from torch.utils.data import Dataset
-from torch.utils.data.dataset import T_co
 
 
 class KeyPointDataset(Dataset):
 
     def __init__(self, dataset: Union[str, Path]):
         super().__init__()
+        self.obj_paths = []
+        for obj_name in os.listdir(dataset):
+            obj_path = Path(dataset) / obj_name
+            self.obj_paths.append(obj_path)
         # TODO
-        print(dataset)
 
     def __getitem__(self, index):
+        obj_path = self.obj_paths[index]
+        obj = Image.open(obj_path)
+        obj = obj.convert('RGB')
+        obj = transforms.ToTensor()(obj)
+        return obj
         # TODO
-        pass
 
     def __len__(self):
         # TODO
-        return 0
+        return len(self.obj_paths)
