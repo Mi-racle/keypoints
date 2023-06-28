@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from dataset import KeyPointDataset
-from models.backbone import Backbone
+from models.resnet import Backbone
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
