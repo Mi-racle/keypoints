@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from dataset import KeyPointDataset
-from models.resnet import Backbone
+from models.resnet import KeyResnet
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
@@ -19,8 +19,9 @@ def train(
     # TODO
 
     for i, inputs in enumerate(loaded_set):
-        print('train todo')
         outputs = model(inputs)
+        print(outputs.size())
+        print('train todo')
 
 
 def load(dataset: Union[str, Path]):
@@ -37,7 +38,7 @@ def load(dataset: Union[str, Path]):
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default=ROOT / 'datasets/testset')
+    parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--epochs', default=100)
     parser.add_argument('--depth', default=18, help='depth of Resnet, 18, 34, 50, 101, 152')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
@@ -50,7 +51,7 @@ def run():
     epochs = opt.epochs
     depth = opt.depth
 
-    model = Backbone(depth)
+    model = KeyResnet(depth)
     loaded_set = load(dataset)
     for epoch in range(0, epochs):
         train(model, loaded_set)
