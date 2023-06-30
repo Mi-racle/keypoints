@@ -22,6 +22,7 @@ class KeyPointDataset(Dataset):
         obj = Image.open(obj_path)
         obj = obj.convert('RGB')
         obj = transforms.ToTensor()(obj)
+        print(obj_path)
         return obj
         # TODO
 

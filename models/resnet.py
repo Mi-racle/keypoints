@@ -99,7 +99,7 @@ class KeyResnet(nn.Module):
         self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['couts'][2], resnet['repeats'][2])
         self.layer4 = self._make_layer(resnet['module'], resnet['cins'][3], resnet['couts'][3], resnet['repeats'][3])
         self.deconv = Deconv(
-            cin=(resnet['couts'][3] * 1 if resnet['module'] is BasicBlock else 4),
+            cin=resnet['couts'][3] * (1 if resnet['module'] is BasicBlock else 4),
             cout=256,
             k=3,
             s=2,
