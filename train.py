@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 
 from dataset import KeyPointDataset
 from models.resnet import KeyResnet
+from utils import draw_heatmap
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
@@ -25,6 +26,12 @@ def train(
         outputs = model(inputs)
         print(outputs.size())
         print('train todo')
+        features = outputs[0]
+        no = 0
+        for feature in features:
+            h, w = feature.shape
+            draw_heatmap(h, w, feature.cpu().numpy(), 'heatmap' + str(no) + '.jpg')
+            no += 1
 
 
 def load(dataset: Union[str, Path]):
