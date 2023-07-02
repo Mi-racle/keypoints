@@ -30,7 +30,7 @@ def train(
         no = 0
         for feature in features:
             h, w = feature.shape
-            draw_heatmap(h, w, feature.cpu().numpy(), 'heatmap' + str(no) + '.jpg')
+            draw_heatmap(h, w, feature.detach().numpy(), 'heatmap' + str(no) + '.jpg')
             no += 1
 
 
