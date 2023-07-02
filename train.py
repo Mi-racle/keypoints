@@ -26,12 +26,7 @@ def train(
         outputs = model(inputs)
         print(outputs.size())
         print('train todo')
-        features = outputs[0]
-        no = 0
-        for feature in features:
-            h, w = feature.shape
-            draw_heatmap(h, w, feature.detach().numpy(), 'heatmap' + str(no) + '.jpg')
-            no += 1
+        draw_heatmap(4, 4, outputs.detach().numpy(), 'heatmap' + str(i) + '.jpg')
 
 
 def load(dataset: Union[str, Path]):

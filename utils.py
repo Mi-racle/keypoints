@@ -24,7 +24,7 @@ def draw_heatmap(width, height, x, save_name):
         img = img[:, :, ::-1]  # 注意cv2（BGR）和matplotlib(RGB)通道是相反的
         plt.imshow(img)
         print("{}/{}".format(i, width * height))
-    fig.savefig(savename, dpi=100)
+    fig.savefig(save_name, dpi=100)
     fig.clf()
     plt.close()
     print("time:{}".format(time.time() - tic))
