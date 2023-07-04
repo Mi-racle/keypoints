@@ -26,7 +26,7 @@ def train(
         outputs = model(inputs)
         print(outputs.size())
         print('train todo')
-        draw_heatmap(4, 4, outputs.detach().numpy(), 'heatmap' + str(i) + '.jpg')
+        draw_heatmap(4, 4, outputs.detach().numpy(), ROOT / ('heatmaps/heatmap' + str(i) + '.jpg'))
 
 
 def load(dataset: Union[str, Path]):
@@ -44,7 +44,7 @@ def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
-    parser.add_argument('--epochs', default=100)
+    parser.add_argument('--epochs', default=1)
     parser.add_argument('--depth', default=18, help='depth of Resnet, 18, 34, 50, 101, 152')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
