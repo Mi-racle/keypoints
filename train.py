@@ -46,6 +46,7 @@ def parse_opt(known=False):
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=1)
     parser.add_argument('--depth', default=18, help='depth of Resnet, 18, 34, 50, 101, 152')
+    parser.add_argument('--heatmaps', default=16, help='the number of heatmaps, which uncertainty maps equal')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
@@ -56,8 +57,9 @@ def run():
     device = opt.device if opt.device == 'cpu' else 'cuda:' + str(opt.device)
     epochs = opt.epochs
     depth = opt.depth
+    heatmaps = opt.heatmaps
 
-    model = KeyResnet(depth)
+    model = KeyResnet(depth, heatmaps)
     loaded_set = load(dataset)
     for epoch in range(0, epochs):
         train(device, model, loaded_set)
