@@ -233,4 +233,4 @@ class KeyDecider(nn.Module):
                 xyv.append([co_x, co_y, vi])
             m.append(xyv)
 
-        return torch.Tensor(m)
+        return torch.tensor(m, requires_grad=True)

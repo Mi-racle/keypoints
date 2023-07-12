@@ -26,11 +26,11 @@ def draw_heatmap(width, height, x, save_name):
         img = cv2.applyColorMap(img, cv2.COLORMAP_JET)  # 生成heat map
         img = img[:, :, ::-1]  # 注意cv2（BGR）和matplotlib(RGB)通道是相反的
         plt.imshow(img)
-        print("{}/{}".format(i, width * height))
+        # print("{}/{}".format(i, width * height))
     fig.savefig(save_name, dpi=100, overwrite=True)
     fig.clf()
     plt.close()
-    print("time:{}".format(time.time() - tic))
+    # print("time:{}".format(time.time() - tic))
 
 
 def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
