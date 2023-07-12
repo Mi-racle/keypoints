@@ -214,6 +214,7 @@ class KeyDecider(nn.Module):
         channels = x.size(1)
         width = x.size(2)
         height = x.size(3)
+
         if channels % 2 != 0:
             raise Exception('Channels of heatmaps don\'t equal uncertainty maps')
         k = int(channels / 2)
