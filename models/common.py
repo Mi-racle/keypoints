@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import torch
@@ -118,7 +119,7 @@ class Bottleneck(nn.Module):
 
 
 class KeyResnet(nn.Module):
-    def __init__(self, depth, heatmaps, visualize):
+    def __init__(self, depth, heatmaps, visualize=False):
         super().__init__()
         self.visualize = visualize
         self.resnets = {
@@ -187,6 +188,8 @@ class KeyResnet(nn.Module):
         if self.visualize:
             file = Path(__file__).resolve()
             root = file.parents[0].parents[0]
+            if not os.path.exists(root / 'heatmaps'):
+                os.mkdir(root / 'heatmaps')
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
@@ -219,18 +222,21 @@ class KeyDecider(nn.Module):
 
         m = []
         for i in range(batch_size):
-            xyv = []
+            xyvs = []
             xi = x[i]
             for j in range(k):
                 h = xi[j]
                 v = xi[j + k]
                 w = self.softmax(h)
                 p = torch.arange(end=w.size(1))
-                ki = round(torch.sum(w * p).item())
+                ki = torch.round(torch.sum(w * p))
                 co_x = ki % width / width * self.image_size[0]
-                co_y = ki // width / height * self.image_size[1]
+                co_y = (ki - ki % width) / width / height * self.image_size[1]
                 vi = torch.sum(w * v)
-                xyv.append([co_x, co_y, vi])
-            m.append(xyv)
+                xyv = torch.stack((co_x, co_y, vi))
+                xyvs.append(xyv)
+            xyvs = torch.stack(xyvs)
+            m.append(xyvs)
+        m = torch.stack(m)
 
-        return torch.tensor(m, requires_grad=True)
+        return m

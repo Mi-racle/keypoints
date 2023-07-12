@@ -11,11 +11,12 @@ from tqdm import tqdm
 
 from dataset import KeyPointDataset
 from loss import LossComputer
+from models.common import KeyResnet
 from models.keypoint import KeyPointNet
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
-
+tt = torch.randn(1, 16, 2, requires_grad=True)
 
 def train(
         device: str,
@@ -33,7 +34,7 @@ def train(
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
         # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
         pred = model(inputs)
-        loss = loss_computer(pred, target)
+        loss = loss_computer(pred, tt)
         total_loss += loss.item()
         # print(loss.item())
 
@@ -74,7 +75,7 @@ def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
-    parser.add_argument('--epochs', default=1, type=int)
+    parser.add_argument('--epochs', default=10, type=int)
     parser.add_argument('--depth', default=18, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--heatmaps', default=16, type=int, help='the number of heatmaps, which uncertainty maps equal')
     parser.add_argument('--visualize', default=False, help='visualize heatmaps or not')
@@ -94,11 +95,12 @@ def run():
     imgsz = opt.imgsz
     imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
 
-    model = KeyPointNet(depth, imgsz, heatmaps, visualize)
+    model = KeyResnet(depth, heatmaps, visualize)
+    # model = KeyPointNet(depth, imgsz, heatmaps, visualize)
     # model.load_state_dict(torch.load('best.pt'))
     loaded_set = load(dataset, imgsz)
-    loss_computer = LossComputer()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    loss_computer = LossComputer(imgsz)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     for epoch in range(0, epochs):
         model.train()
         train(device, model, loaded_set, loss_computer, optimizer)

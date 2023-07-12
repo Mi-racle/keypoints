@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from models.common import KeyDecider
+
 
 class DistanceLoss(nn.Module):
     def __init__(self, norm: float = 1.0):
@@ -18,11 +20,12 @@ class DistanceLoss(nn.Module):
 
 
 class LossComputer:
-    def __init__(self):
+    def __init__(self, imgsz):
+        self.key_decider = KeyDecider(imgsz)
         self.distance_loss = DistanceLoss()
 
     def __call__(self, pred, target):
+        pred = self.key_decider(pred)
         keypoints = pred[:, :, 0: 2]
         ldis = self.distance_loss(keypoints, target)
-
         return ldis
