@@ -6,6 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from torch import Tensor
 
 
 def draw_heatmap(width, height, x, save_name):

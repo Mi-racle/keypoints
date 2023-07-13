@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from models.common import KeyDecider
+from keydecider import KeyDecider
 
 
 class DistanceLoss(nn.Module):

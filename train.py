@@ -12,29 +12,26 @@ from tqdm import tqdm
 from dataset import KeyPointDataset
 from loss import LossComputer
 from models.common import KeyResnet
-from models.keypoint import KeyPointNet
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
-tt = torch.randn(1, 16, 2, requires_grad=True)
+
 
 def train(
-        device: str,
+        device: torch.device,
         model: nn.Module,
         loaded_set: DataLoader,
         loss_computer: LossComputer,
         optimizer: Optimizer
 ):
-    # TODO
-    device = torch.device(device)
-    model.to(device)
-
     total_loss = 0
 
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
         # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
+        inputs.to(device)
+        target.to(device)
         pred = model(inputs)
-        loss = loss_computer(pred, tt)
+        loss = loss_computer(pred, target)
         total_loss += loss.item()
         # print(loss.item())
 
@@ -87,7 +84,8 @@ def parse_opt(known=False):
 def run():
     opt = parse_opt()
     dataset = opt.data
-    device = opt.device if opt.device == 'cpu' else 'cuda:' + str(opt.device)
+    device = opt.device if not torch.cuda.is_available() or opt.device == 'cpu' else 'cuda:' + str(opt.device)
+    device = torch.device(device)
     epochs = opt.epochs
     depth = opt.depth
     heatmaps = opt.heatmaps
@@ -96,11 +94,11 @@ def run():
     imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
 
     model = KeyResnet(depth, heatmaps, visualize)
-    # model = KeyPointNet(depth, imgsz, heatmaps, visualize)
+    model.to(device)
     # model.load_state_dict(torch.load('best.pt'))
     loaded_set = load(dataset, imgsz)
     loss_computer = LossComputer(imgsz)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     for epoch in range(0, epochs):
         model.train()
         train(device, model, loaded_set, loss_computer, optimizer)
