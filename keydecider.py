@@ -27,7 +27,7 @@ class KeyDecider:
                 h = xi[j]
                 v = xi[j + k]
                 w = self.softmax(h)
-                p = torch.arange(end=w.size(1))
+                p = torch.arange(end=w.size(1)).to(w.device)
                 ki = torch.sum(w * p)
                 co_x = ki % width / width * self.image_size[0]
                 co_y = (ki - ki % width) / width / height * self.image_size[1]

@@ -18,9 +18,10 @@ def draw_heatmap(width, height, x, save_name):
         plt.subplot(height, width, i + 1)
         plt.axis('off')
         img = x[0, i, :, :]
-        pmin = np.min(img)
-        pmax = np.max(img)
-        img = ((img - pmin) / (pmax - pmin + 1e-6)) * 255  # float在[0，1]之间，转换成0-255
+        # pmin = np.min(img)
+        # pmax = np.max(img)
+        # img = ((img - pmin) / (pmax - pmin + 1e-6)) * 255  # float在[0，1]之间，转换成0-255
+        img *= 255
         img = img.astype(np.uint8)  # 转成unit8
         # 函数applycolormap产生伪彩色图像
         # COLORMAP_JET模式，就常被用于生成我们所常见的 热力图
@@ -43,7 +44,7 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
         dirs = glob.glob(f"{dst_path}{sep}*")  # similar paths
         matches = [re.search(rf"%s{sep}(\d+)" % dst_path.stem, d) for d in dirs]
         i = [int(m.groups()[0]) for m in matches if m]  # indices
-        n = max(i) + 1 if i else 2  # increment number
+        n = max(i) + 1 if i else 1  # increment number
         dst_path = Path(f"{dst_path}{sep}{n}{suffix}")  # update path
     _dir = dst_path if dst_path.suffix == '' else dst_path.parent  # directory
     if not _dir.exists() and mkdir:

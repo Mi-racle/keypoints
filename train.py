@@ -27,9 +27,8 @@ def train(
     total_loss = 0
 
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+        inputs, target = inputs.to(device), target.to(device)
         # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
-        inputs.to(device)
-        target.to(device)
         pred = model(inputs)
         loss = loss_computer(pred, target)
         total_loss += loss.item()
@@ -73,10 +72,10 @@ def parse_opt(known=False):
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=10, type=int)
-    parser.add_argument('--depth', default=18, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
+    parser.add_argument('--depth', default=34, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--heatmaps', default=16, type=int, help='the number of heatmaps, which uncertainty maps equal')
-    parser.add_argument('--visualize', default=False, help='visualize heatmaps or not')
-    parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
+    parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
+    parser.add_argument('--imgsz', default=[128], type=int, nargs='+', help='pixels')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
@@ -98,8 +97,9 @@ def run():
     # model.load_state_dict(torch.load('best.pt'))
     loaded_set = load(dataset, imgsz)
     loss_computer = LossComputer(imgsz)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.99))
     for epoch in range(0, epochs):
+        print(f'Epoch {epoch}:')
         model.train()
         train(device, model, loaded_set, loss_computer, optimizer)
     # TODO

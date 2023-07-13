@@ -79,10 +79,10 @@ class CommonBlock(nn.Module):
 
 
 class BasicBlock(nn.Module):
-    def __init__(self, cin, cout, s=1):
+    def __init__(self, cin, mid, cout, s=1):
         super().__init__()
-        self.conv = Conv(cin, cout, k=3, s=s)
-        self.conv2 = Conv(cout, cout, k=3, s=1, act=False)
+        self.conv = Conv(cin, mid, k=3, s=s)
+        self.conv2 = Conv(mid, cout, k=3, s=1, act=False)
         self.down_sample = Conv(cin, cout, k=1, s=s, act=False)
         self.act = nn.ReLU()
 
@@ -97,13 +97,12 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
-    def __init__(self, cin, cout, s=1):
+    def __init__(self, cin, mid, cout, s=1):
         super().__init__()
-        expansion = 4
-        self.conv = Conv(cin, cout, k=1, s=1)
-        self.conv2 = Conv(cout, cout, k=3, s=s)
-        self.conv3 = Conv(cout, cout * expansion, k=1, s=1, act=False)
-        self.down_sample = Conv(cin, cout * expansion, k=1, s=s, act=False)
+        self.conv = Conv(cin, mid, k=1, s=1)
+        self.conv2 = Conv(mid, mid, k=3, s=s)
+        self.conv3 = Conv(mid, cout, k=1, s=1, act=False)
+        self.down_sample = Conv(cin, cout, k=1, s=s, act=False)
         self.act = nn.ReLU()
 
     def forward(self, x):
@@ -125,31 +124,36 @@ class KeyResnet(nn.Module):
             18: {
                 'module': BasicBlock,
                 'cins': [64, 64, 128, 256],
+                'mids': [64, 128, 256, 512],
                 'couts': [64, 128, 256, 512],
                 'repeats': [2, 2, 2, 2]
             },
             34: {
                 'module': BasicBlock,
                 'cins': [64, 64, 128, 256],
+                'mids': [64, 128, 256, 512],
                 'couts': [64, 128, 256, 512],
                 'repeats': [3, 4, 6, 3]
             },
             50: {
-                'module': BasicBlock,
+                'module': Bottleneck,
                 'cins': [64, 256, 512, 1024],
-                'couts': [64, 128, 256, 512],
+                'mids': [64, 128, 256, 512],
+                'couts': [256, 512, 1024, 2048],
                 'repeats': [3, 4, 6, 3]
             },
             101: {
-                'module': BasicBlock,
+                'module': Bottleneck,
                 'cins': [64, 256, 512, 1024],
-                'couts': [64, 128, 256, 512],
+                'mids': [64, 128, 256, 512],
+                'couts': [256, 512, 1024, 2048],
                 'repeats': [3, 4, 23, 3]
             },
             152: {
-                'module': BasicBlock,
+                'module': Bottleneck,
                 'cins': [64, 256, 512, 1024],
-                'couts': [64, 128, 256, 512],
+                'mids': [64, 128, 256, 512],
+                'couts': [256, 512, 1024, 2048],
                 'repeats': [3, 8, 36, 3]
             }
         }
@@ -157,18 +161,11 @@ class KeyResnet(nn.Module):
         resnet = self.resnets.get(depth)
         if resnet is None:
             raise Exception('Value of \'depth\' is not valid.')
-        self.layer = self._make_layer(resnet['module'], resnet['cins'][0], resnet['couts'][0], resnet['repeats'][0])
-        self.layer2 = self._make_layer(resnet['module'], resnet['cins'][1], resnet['couts'][1], resnet['repeats'][1])
-        self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['couts'][2], resnet['repeats'][2])
-        self.layer4 = self._make_layer(resnet['module'], resnet['cins'][3], resnet['couts'][3], resnet['repeats'][3])
-        self.deconv = Deconv(
-            cin=resnet['couts'][3] * (1 if resnet['module'] is BasicBlock else 4),
-            cout=256,
-            k=3,
-            s=2,
-            p=1,
-            pout=1,
-        )
+        self.layer = self._make_layer(resnet['module'], resnet['cins'][0], resnet['mids'][0], resnet['couts'][0], resnet['repeats'][0])
+        self.layer2 = self._make_layer(resnet['module'], resnet['cins'][1], resnet['mids'][0], resnet['couts'][1], resnet['repeats'][1])
+        self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['mids'][0], resnet['couts'][2], resnet['repeats'][2])
+        self.layer4 = self._make_layer(resnet['module'], resnet['cins'][3], resnet['mids'][0], resnet['couts'][3], resnet['repeats'][3])
+        self.deconv = Deconv(cin=resnet['couts'][3], cout=256, k=3, s=2, p=1, pout=1)
         self.deconv2 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
         self.deconv3 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
         self.final_layer = nn.Conv2d(in_channels=256, out_channels=heatmaps * 2, kernel_size=1, stride=1, padding=1)
@@ -195,8 +192,8 @@ class KeyResnet(nn.Module):
         return x
 
     @staticmethod
-    def _make_layer(module, cin, cout, repeats, s=1):
-        layers = [module(cin, cout, s)]
+    def _make_layer(module, cin, mid, cout, repeats, s=1):
+        layers = [module(cin, mid, cout, s)]
         for i in range(1, repeats):
-            layers.append(module(cout, cout))
+            layers.append(module(cout, mid, cout))
         return nn.Sequential(*layers)

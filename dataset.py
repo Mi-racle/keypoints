@@ -30,6 +30,7 @@ class KeyPointDataset(Dataset):
     def __getitem__(self, index):
         obj_path = self.obj_paths[index]
         obj = Image.open(obj_path)
+        ow, oh = obj.width, obj.height
         w, h = self.image_size[0], self.image_size[1]
         obj = obj.resize((w, h))
         obj = obj.convert('RGB')
@@ -40,7 +41,7 @@ class KeyPointDataset(Dataset):
         f = open(lbl_path, 'r')
         dic = json.load(f)
         f.close()
-        points = [shape['points'][0] for shape in dic['shapes']]
+        points = [[shape['points'][0][0] / ow * w, shape['points'][0][1] / oh * h] for shape in dic['shapes']]
         target = torch.tensor(points, requires_grad=True)
 
         return obj, target
