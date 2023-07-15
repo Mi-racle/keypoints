@@ -168,7 +168,10 @@ class KeyResnet(nn.Module):
         self.deconv = Deconv(cin=resnet['couts'][3], cout=256, k=3, s=2, p=1, pout=1)
         self.deconv2 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
         self.deconv3 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
-        self.final_layer = nn.Conv2d(in_channels=256, out_channels=heatmaps * 2, kernel_size=1, stride=1, padding=1)
+        # for ArgSoftmaxDecider
+        # self.final_layer = nn.Conv2d(in_channels=256, out_channels=heatmaps * 2, kernel_size=1, stride=1, padding=1)
+        # for GridBasedDecider
+        self.final_layer = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=1, stride=1, padding=1)
 
     def forward(self, x):
         x = self.common_block(x)

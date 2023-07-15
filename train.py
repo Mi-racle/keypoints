@@ -74,6 +74,7 @@ def parse_opt(known=False):
     parser.add_argument('--epochs', default=10, type=int)
     parser.add_argument('--depth', default=34, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--heatmaps', default=16, type=int, help='the number of heatmaps, which uncertainty maps equal')
+    parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[128], type=int, nargs='+', help='pixels')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
@@ -88,6 +89,7 @@ def run():
     epochs = opt.epochs
     depth = opt.depth
     heatmaps = opt.heatmaps
+    grids = opt.grids
     visualize = opt.visualize
     imgsz = opt.imgsz
     imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
@@ -96,7 +98,8 @@ def run():
     model.to(device)
     # model.load_state_dict(torch.load('best.pt'))
     loaded_set = load(dataset, imgsz)
-    loss_computer = LossComputer(imgsz)
+    # loss_computer = LossComputer(imgsz=imgsz)
+    loss_computer = LossComputer(keypoints=heatmaps, imgsz=imgsz, grids=grids)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.99))
     for epoch in range(0, epochs):
         print(f'Epoch {epoch}:')
