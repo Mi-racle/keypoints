@@ -63,13 +63,20 @@ class GridBasedDecider:
         channels = inputs.size(1)
         height = inputs.size(2)
         width = inputs.size(3)
+
+        height_padding = (self.grids - height % self.grids) / 2
+        width_padding = (self.grids - width % self.grids) / 2
+        inputs = F.pad(inputs, (int(height_padding), int(height_padding), int(width_padding), int(width_padding)), 'constant', 0)
+
+        height = inputs.size(2)
+        width = inputs.size(3)
         grid_height = height / self.grids
         grid_width = width / self.grids
 
-        inputs = inputs.view(batch_size, channels, 1, -1)
-        inputs = self.softmax(inputs)
-        inputs = inputs.view(batch_size, channels, height, width)
-
         filters = torch.ones(int(batch_size), int(channels), int(grid_height), int(grid_width))
         grid_inputs = F.conv2d(inputs, weight=filters, stride=(int(grid_height), int(grid_width)))
+        grid_inputs = grid_inputs.view(batch_size, channels, 1, -1)
+        topk_indices = torch.topk(grid_inputs, self.keypoints, sorted=False)
+
+
         return grid_inputs
