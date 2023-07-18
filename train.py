@@ -98,7 +98,6 @@ def run():
     model.to(device)
     # model.load_state_dict(torch.load('best.pt'))
     loaded_set = load(dataset, imgsz)
-    # loss_computer = LossComputer(imgsz=imgsz)
     loss_computer = LossComputer(keypoints=heatmaps, imgsz=imgsz, grids=grids)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.99))
     for epoch in range(0, epochs):

@@ -11,7 +11,8 @@ class ArgSoftmaxDecider:
         self.image_size = imgsz
         self.softmax = nn.Softmax(dim=1)
 
-    def __call__(self, inputs):
+    def __call__(self, **kwargs):
+        inputs = kwargs.get('inputs')
         batch_size = inputs.size(0)
         channels = inputs.size(1)
         height = inputs.size(2)
@@ -58,7 +59,8 @@ class GridBasedDecider:
         self.grids = grids
         self.softmax = nn.Softmax(dim=3)
 
-    def __call__(self, inputs):
+    def __call__(self, **kwargs):
+        inputs = kwargs.get('inputs')
         batch_size = inputs.size(0)
         channels = inputs.size(1)
         height = inputs.size(2)
@@ -78,5 +80,43 @@ class GridBasedDecider:
         grid_inputs = grid_inputs.view(batch_size, channels, 1, -1)
         topk_indices = torch.topk(grid_inputs, self.keypoints, sorted=False)
 
+        # TODO
 
         return grid_inputs
+
+
+class GravitationDecider:
+    def __init__(self, keypoints, imgsz):
+        self.keypoints = keypoints
+        self.image_size = imgsz
+
+        self.distance = nn.PairwiseDistance(2)
+
+    def __call__(self, **kwargs):
+        target = kwargs.get('target')
+        inputs = kwargs.get('inputs')
+        batch_size = inputs.size(0)
+        height = inputs.size(2)
+        width = inputs.size(3)
+        inputs = inputs.view(batch_size, height, width)
+
+        targetn = torch.div(target, torch.tensor(self.image_size))
+        target = torch.round(target)
+
+        yns = torch.linspace(0, 1, height).view(-1, 1).repeat(1, width)
+        xns = torch.linspace(0, 1, width).repeat(height, 1)
+        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2)
+        yxns = yxns.repeat([self.keypoints] + [1 for _ in range(yxns.dim())])
+        yxns = yxns.repeat([batch_size] + [1 for _ in range(yxns.dim())])
+
+        for i in range(batch_size):
+            for j in range(self.keypoints):
+                yxns[i][j] = yxns[i][j] - targetn[i][j]
+                k_y, k_x = int(target[i][j][0]), int(target[i][j][1])
+                for y in range(height):
+                    for x in range(width):
+                        force = inputs[i][k_y][k_x] * inputs[i][y][x] * torch.pow(torch.pow(yxns[i][j][y][x][0], 2) + torch.pow(yxns[i][j][y][x][1], 2), 2/3)
+                        yxns[i][j][y][x][0] = yxns[i][j][y][x][0] * force
+                        yxns[i][j][y][x][1] = yxns[i][j][y][x][1] * force
+
+        return inputs

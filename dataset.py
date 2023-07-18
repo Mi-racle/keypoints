@@ -41,7 +41,7 @@ class KeyPointDataset(Dataset):
         f = open(lbl_path, 'r')
         dic = json.load(f)
         f.close()
-        points = [[shape['points'][0][0] / ow * w, shape['points'][0][1] / oh * h] for shape in dic['shapes']]
+        points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
         target = torch.tensor(points, requires_grad=True)
 
         return obj, target

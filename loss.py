@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from keydeciders import ArgSoftmaxDecider, GridBasedDecider
+from keydeciders import ArgSoftmaxDecider, GridBasedDecider, GravitationDecider
 
 
 class DistanceLoss(nn.Module):
@@ -25,12 +25,13 @@ class LossComputer:
         imgsz = kwargs.get('imgsz')
         grids = kwargs.get('grids')
         # self.key_decider = ArgSoftmaxDecider(imgsz)
-        self.key_decider = GridBasedDecider(keypoints, imgsz, grids)
+        # self.key_decider = GridBasedDecider(keypoints, imgsz, grids)
+        self.key_decider = GravitationDecider(keypoints, imgsz)
 
         self.distance_loss = DistanceLoss()
 
     def __call__(self, pred, target):
-        pred = self.key_decider(pred)
+        pred = self.key_decider(inputs=pred, target=target)
         keypoints = pred[:, :, 0: 2]
         ldis = self.distance_loss(keypoints, target)
         return ldis
