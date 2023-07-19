@@ -98,25 +98,48 @@ class GravitationDecider:
         batch_size = inputs.size(0)
         height = inputs.size(2)
         width = inputs.size(3)
-        inputs = inputs.view(batch_size, height, width)
+        inputs = inputs.view(batch_size, height * width)
 
         targetn = torch.div(target, torch.tensor(self.image_size))
-        target = torch.round(target)
+        target = torch.round(torch.mul(targetn, torch.tensor([height, width])))
 
         yns = torch.linspace(0, 1, height).view(-1, 1).repeat(1, width)
         xns = torch.linspace(0, 1, width).repeat(height, 1)
-        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2)
-        yxns = yxns.repeat([self.keypoints] + [1 for _ in range(yxns.dim())])
-        yxns = yxns.repeat([batch_size] + [1 for _ in range(yxns.dim())])
+        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2).view(height * width, 2)
 
+        bkforces = []
         for i in range(batch_size):
+            kforces = []
             for j in range(self.keypoints):
-                yxns[i][j] = yxns[i][j] - targetn[i][j]
                 k_y, k_x = int(target[i][j][0]), int(target[i][j][1])
-                for y in range(height):
-                    for x in range(width):
-                        force = inputs[i][k_y][k_x] * inputs[i][y][x] * torch.pow(torch.pow(yxns[i][j][y][x][0], 2) + torch.pow(yxns[i][j][y][x][1], 2), 2/3)
-                        yxns[i][j][y][x][0] = yxns[i][j][y][x][0] * force
-                        yxns[i][j][y][x][1] = yxns[i][j][y][x][1] * force
+                k_v = inputs[i][k_y * width + k_x]
+                vectors = yxns - targetn[i][j]  # vectors: (height * width, 2)
+                vectors = torch.mul(
+                    vectors,
+                    torch
+                    .mul(
+                        torch.mul(
+                            torch.pow(
+                                torch.sum(
+                                    torch.pow(
+                                        vectors,
+                                        2
+                                    ),
+                                    -1
+                                ),
+                                2 / 3
+                            ),
+                            k_v
+                        ),
+                        inputs[i]
+                    )
+                    .view(-1, 1)
+                    .repeat(1, 2)
+                )
+                vectors = torch.sum(vectors, 0)
+                kforces.append(vectors)
+            kforces = torch.stack(kforces)
+            bkforces.append(kforces)
+        bkforces = torch.stack(bkforces)  # bkforces: (batch_size, self.keypoints, 2)
 
-        return inputs
+        return bkforces

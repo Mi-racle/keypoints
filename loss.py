@@ -15,8 +15,19 @@ class DistanceLoss(nn.Module):
 
     def forward(self, pred, target):
         dis = self.distance(pred, target)
-        mean = torch.mean(dis)
-        return mean
+
+        return torch.mean(dis)
+
+
+class GravitationLoss(nn.Module):
+    def __init__(self, norm: float = 2.0):
+        super(GravitationLoss, self).__init__()
+        self.distance = nn.PairwiseDistance(p=norm)
+
+    def forward(self, pred):
+        dis = self.distance(pred, torch.zeros_like(pred))
+
+        return torch.sum(dis)
 
 
 class LossComputer:
@@ -28,10 +39,12 @@ class LossComputer:
         # self.key_decider = GridBasedDecider(keypoints, imgsz, grids)
         self.key_decider = GravitationDecider(keypoints, imgsz)
 
-        self.distance_loss = DistanceLoss()
+        # self.distance_loss = DistanceLoss()
+        self.gravitation_loss = GravitationLoss()
 
     def __call__(self, pred, target):
         pred = self.key_decider(inputs=pred, target=target)
-        keypoints = pred[:, :, 0: 2]
-        ldis = self.distance_loss(keypoints, target)
-        return ldis
+        # keypoints = pred[:, :, 0: 2]
+        # ldis = self.distance_loss(keypoints, target)
+        lgra = self.gravitation_loss(pred)
+        return lgra
