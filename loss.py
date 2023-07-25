@@ -43,7 +43,7 @@ class LossComputer:
         self.gravitation_loss = GravitationLoss()
 
     def __call__(self, pred, target):
-        pred = self.key_decider(inputs=pred, target=target)
+        pred = self.key_decider(inputs=pred, target=target, mode='train')
         # keypoints = pred[:, :, 0: 2]
         # ldis = self.distance_loss(keypoints, target)
         lgra = self.gravitation_loss(pred)

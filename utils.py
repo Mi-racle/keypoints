@@ -50,3 +50,14 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
     if not _dir.exists() and mkdir:
         _dir.mkdir(parents=True, exist_ok=True)  # make directory
     return dst_path
+
+
+def log_epoch(logger, epoch, loss, accuracy):
+    # 1. Log scalar values (scalar summary)
+    info = {
+        'loss': loss,
+        'accuracy': accuracy
+    }
+
+    for tag, value in info.items():
+        logger.scalar_summary(tag, value, epoch)

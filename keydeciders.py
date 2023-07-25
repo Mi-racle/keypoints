@@ -95,6 +95,7 @@ class GravitationDecider:
     def __call__(self, **kwargs):
         target = kwargs.get('target')
         inputs = kwargs.get('inputs')
+        mode = kwargs.get('mode')
         batch_size = inputs.size(0)
         height = inputs.size(2)
         width = inputs.size(3)

@@ -10,8 +10,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataset import KeyPointDataset
+from logger import Logger
 from loss import LossComputer
 from models.common import KeyResnet
+from utils import log_epoch
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
@@ -43,13 +45,15 @@ def train(
     if not os.path.exists(ROOT / 'pts'):
         os.mkdir(ROOT / 'pts')
 
-    log = open(ROOT / 'pts' / 'log.txt', 'a')
-    log.write(f'{average_loss}\n')
-    log.close()
+    # log = open(ROOT / 'pts' / 'log.txt', 'a')
+    # log.write(f'{average_loss}\n')
+    # log.close()
 
     torch.save(model.state_dict(), ROOT / 'pts' / 'best.pt')
 
     print(f'Average loss in this epoch: {average_loss}')
+
+    return average_loss
 
 
 def load(
@@ -71,7 +75,7 @@ def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
-    parser.add_argument('--epochs', default=100, type=int)
+    parser.add_argument('--epochs', default=10, type=int)
     parser.add_argument('--depth', default=34, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--heatmaps', default=16, type=int, help='the number of heatmaps, which uncertainty maps equal')
     parser.add_argument('--grids', default=16, type=int)
@@ -95,14 +99,20 @@ def run():
     imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
 
     model = KeyResnet(depth, heatmaps, visualize)
-    model.to(device)
     # model.load_state_dict(torch.load('best.pt'))
+    model.to(device)
     loaded_set = load(dataset, imgsz)
     loss_computer = LossComputer(keypoints=heatmaps, imgsz=imgsz, grids=grids)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.99))
+    logger = Logger('logs')
     for epoch in range(0, epochs):
         print(f'Epoch {epoch}:')
         model.train()
-        train(device, model, loaded_set, loss_computer, optimizer)
+        loss = train(device, model, loaded_set, loss_computer, optimizer)
+        log_epoch(logger, epoch, loss, 0)
     # TODO
     print('run todo')
+
+
+if __name__ == '__main__':
+    run()
