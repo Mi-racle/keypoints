@@ -2,11 +2,33 @@ import glob
 import re
 import time
 from pathlib import Path
+from typing import Union
 
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from torch import Tensor
+from torch.utils.data import DataLoader
+
+from dataset import KeyPointDataset
+
+ROOT = FILE = Path(__file__).resolve().parents[0]
+
+
+def load_dataset(
+        dataset: Union[str, Path],
+        batch_size: int,
+        image_size: list[int]
+):
+    r"""
+    Loads data.
+    :param Union[str, Path] dataset: path of the dataset from which to load the data
+    :param int batch_size: size of one batch
+    :param list[int] image_size: size of the longer one of width and height
+    """
+    absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
+    data = KeyPointDataset(absolute_set, image_size)
+    loaded_set = DataLoader(dataset=data, batch_size=batch_size)
+    return loaded_set
 
 
 def draw_heatmap(width, height, x, save_name):

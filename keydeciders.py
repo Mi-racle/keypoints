@@ -105,13 +105,12 @@ class GravitationDecider:
         xns = torch.linspace(0, 1, width).repeat(height, 1)
         yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2).view(height * width, 2)
 
-        bkforces = []
-
         if mode == 'train':
 
             targetn = torch.div(target, torch.tensor(self.image_size))
             target = torch.round(torch.mul(targetn, torch.tensor([height, width])))
 
+            bkforces = []
             for i in range(batch_size):
                 kforces = []
                 for j in range(self.keypoints):
@@ -131,7 +130,7 @@ class GravitationDecider:
                                         ),
                                         -1
                                     ),
-                                    2 / 3
+                                    -3 / 2
                                 ),
                                 k_v
                             ),
@@ -146,19 +145,18 @@ class GravitationDecider:
                 bkforces.append(kforces)
             bkforces = torch.stack(bkforces)  # bkforces: (batch_size, self.keypoints, 2)
 
+            return bkforces
+
         elif mode == 'detect':
 
+            bkeypoints = []
             for i in range(batch_size):
-                kforces = []
+                all_forces = []
                 for j in range(height * width):
                     v = inputs[i][j]
                     vectors = yxns - yxns[j]  # vectors: (height * width, 2)
-                    vectors = torch.mul(
-                        vectors,
-                        torch
-                        .mul(
-                            torch.mul(
-                                torch.pow(
+                    # vectors[j] += float('inf')
+                    tmp = torch.pow(
                                     torch.sum(
                                         torch.pow(
                                             vectors,
@@ -166,8 +164,15 @@ class GravitationDecider:
                                         ),
                                         -1
                                     ),
-                                    2 / 3
-                                ),
+                                    -3 / 2
+                                )
+                    tmp[j] = 0
+                    vectors = torch.mul(
+                        vectors,
+                        torch
+                        .mul(
+                            torch.mul(
+                                tmp,
                                 v
                             ),
                             inputs[i]
@@ -176,13 +181,20 @@ class GravitationDecider:
                         .repeat(1, 2)
                     )
                     vectors = torch.sum(vectors, 0)
-                    kforces.append(vectors)
-                kforces = torch.stack(kforces)
-                torch.topk(kforces, self.keypoints)
-                bkforces.append(kforces)
-            bkforces = torch.stack(bkforces)  # bkforces: (batch_size, self.keypoints, 2)
+                    all_forces.append(vectors)
+                all_forces = torch.stack(all_forces)
+                all_forces = torch.sum(torch.pow(all_forces, 2), -1)
+                bottomk = torch.topk(all_forces, self.keypoints, largest=False)[1]
+                kyns = (bottomk // width + 0.5) / height
+                kxns = (bottomk % width + 0.5) / width
+                keypoints = torch.stack([kyns, kxns])
+                keypoints = torch.transpose(keypoints, 0, 1)
+                keypoints = keypoints * torch.tensor(self.image_size)
+                bkeypoints.append(keypoints)
+
+            bkeypoints = torch.stack(bkeypoints)
+
+            return bkeypoints  # bkeypoints: (batch_size, self.keypoints, 2)
 
         else:
             raise Exception('Gravitation mode must be either \'train\' or \'detect\'!')
-
-        return bkforces
