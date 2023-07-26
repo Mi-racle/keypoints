@@ -1,4 +1,5 @@
 import glob
+import os
 import re
 import time
 from pathlib import Path
@@ -6,8 +7,10 @@ from typing import Union
 
 import cv2
 import numpy as np
+from PIL import ImageDraw
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from dataset import KeyPointDataset
 
@@ -72,6 +75,27 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
     if not _dir.exists() and mkdir:
         _dir.mkdir(parents=True, exist_ok=True)  # make directory
     return dst_path
+
+
+def plot_image(inputs, bkeypoints, path: Path):
+    transformer = transforms.ToPILImage()
+
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    batch_size = inputs.size(0)
+
+    for i in range(batch_size):
+        image = inputs[i]
+        image = transformer(image)
+        drawer = ImageDraw.Draw(image)
+
+        keypoints = bkeypoints[i]
+        for keypoint in keypoints:
+            y, x = keypoint[0], keypoint[1]
+            drawer.ellipse(((x - 5, y - 5), (x + 5, y + 5)), fill=(0, 255, 0))
+
+        image.save(increment_path(path / 'image.jpg'))
 
 
 def log_epoch(logger, epoch, loss, accuracy):

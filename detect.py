@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from keydeciders import GravitationDecider
 from models.common import KeyResnet
-from utils import load_dataset, ROOT
+from utils import load_dataset, ROOT, plot_image
 
 
 def detect(
@@ -19,9 +19,9 @@ def detect(
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
         inputs, target = inputs.to(device), target.to(device)
         pred = model(inputs)
-        keypoints = key_decider(inputs=pred, mode='detect')
+        bkeypoints = key_decider(inputs=pred, mode='detect')
+        plot_image(inputs, bkeypoints, ROOT / 'output')
         # TODO
-        pass
 
 
 def parse_opt(known=False):
