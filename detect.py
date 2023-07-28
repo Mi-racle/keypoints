@@ -51,7 +51,7 @@ def run():
     image_size = opt.imgsz
     image_size = [image_size[0], image_size[0]] if len(image_size) == 1 else image_size[0: 2]
     model = KeyResnet(depth, heatmaps, visualize)
-    model.load_state_dict(torch.load(ROOT / 'pts' / 'best.pt'))
+    model.load_state_dict(torch.load(ROOT / 'pts' / 'train119' / 'best.pt'))
     model.to(device)
     loaded_set = load_dataset(dataset, batch_size, image_size)
     key_decider = GravitationDecider(heatmaps, image_size)

@@ -7,6 +7,7 @@ from typing import Union
 
 import cv2
 import numpy as np
+import torch
 from PIL import ImageDraw
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
@@ -98,7 +99,7 @@ def plot_image(inputs, bkeypoints, path: Path):
         image.save(increment_path(path / 'image.jpg'))
 
 
-def log_epoch(logger, epoch, loss, accuracy):
+def log_epoch(logger, epoch, model, loss, accuracy):
     # 1. Log scalar values (scalar summary)
     info = {
         'loss': loss,
@@ -107,3 +108,7 @@ def log_epoch(logger, epoch, loss, accuracy):
 
     for tag, value in info.items():
         logger.scalar_summary(tag, value, epoch)
+
+    logger.save_model('best.pt', model)
+
+    print(f'Average loss in this epoch: {loss}')
