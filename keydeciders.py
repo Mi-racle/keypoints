@@ -7,6 +7,7 @@ class ArgSoftmaxDecider:
     r"""
     Select each heatmap's arg-softmax point as a keypoint.
     """
+
     def __init__(self, imgsz):
         self.image_size = imgsz
         self.softmax = nn.Softmax(dim=1)
@@ -68,7 +69,8 @@ class GridBasedDecider:
 
         height_padding = (self.grids - height % self.grids) / 2
         width_padding = (self.grids - width % self.grids) / 2
-        inputs = F.pad(inputs, (int(height_padding), int(height_padding), int(width_padding), int(width_padding)), 'constant', 0)
+        inputs = F.pad(inputs, (int(height_padding), int(height_padding), int(width_padding), int(width_padding)),
+                       'constant', 0)
 
         height = inputs.size(2)
         width = inputs.size(3)
@@ -157,15 +159,15 @@ class GravitationDecider:
                     vectors = yxns - yxns[j]  # vectors: (height * width, 2)
                     # vectors[j] += float('inf')
                     tmp = torch.pow(
-                                    torch.sum(
-                                        torch.pow(
-                                            vectors,
-                                            2
-                                        ),
-                                        -1
-                                    ),
-                                    -3 / 2
-                                )
+                        torch.sum(
+                            torch.pow(
+                                vectors,
+                                2
+                            ),
+                            -1
+                        ),
+                        -3 / 2
+                    )
                     tmp[j] = 0
                     vectors = torch.mul(
                         vectors,
@@ -184,7 +186,7 @@ class GravitationDecider:
                     all_forces.append(vectors)
                 all_forces = torch.stack(all_forces)
                 all_forces = torch.sum(torch.pow(all_forces, 2), -1)
-                bottomk = torch.topk(all_forces, self.keypoints, largest=False)[1]
+                _, bottomk = torch.topk(all_forces, self.keypoints, largest=False)
                 kyns = (bottomk // width + 0.5) / height
                 kxns = (bottomk % width + 0.5) / width
                 keypoints = torch.stack([kyns, kxns])

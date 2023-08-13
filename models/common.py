@@ -121,8 +121,9 @@ class Bottleneck(nn.Module):
 
 
 class KeyResnet(nn.Module):
-    def __init__(self, depth, heatmaps, visualize=False):
+    def __init__(self, depth, keypoints, visualize=False):
         super().__init__()
+        self.keypoints = keypoints
         self.visualize = visualize
         self.resnets = {
             18: {
@@ -173,9 +174,10 @@ class KeyResnet(nn.Module):
         # self.deconv2 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
         # self.deconv3 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
         # for ArgSoftmaxDecider
-        # self.final_layer = nn.Conv2d(in_channels=256, out_channels=heatmaps * 2, kernel_size=1, stride=1, padding=1)
+        # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
         self.final_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, stride=1, padding=1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.common_block(x)
@@ -195,6 +197,12 @@ class KeyResnet(nn.Module):
                 os.mkdir(root / 'heatmaps')
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
+
+        # x = x.view(x.size(0), x.size(1), -1).contiguous()
+        # fc = nn.Linear(x.size(2), self.keypoints)
+        # x = fc(x)
+        # x = self.sigmoid(x)
+        # x = x.transpose(1, 2).contiguous()
 
         return x
 
