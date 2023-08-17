@@ -33,7 +33,7 @@ def parse_opt(known=False):
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--depth', default=34, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
-    parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints, which uncertainty maps equal')
+    parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints')
     parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
