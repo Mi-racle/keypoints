@@ -45,7 +45,7 @@ def parse_opt(known=False):
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=120, type=int)
-    parser.add_argument('--depth', default=34, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
+    parser.add_argument('--depth', default=101, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints, which uncertainty maps equal')
     parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
@@ -73,7 +73,7 @@ def run():
     model.to(device)
     loaded_set = load_dataset(dataset, batch_size, imgsz)
     loss_computer = LossComputer(keypoints=keypoints, imgsz=imgsz, grids=grids)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.99))
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.99))
     logger = Logger(increment_path(ROOT / 'logs' / 'train'))
     for epoch in range(0, epochs):
         print(f'Epoch {epoch}:')

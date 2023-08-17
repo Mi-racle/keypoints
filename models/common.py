@@ -176,7 +176,7 @@ class KeyResnet(nn.Module):
         # for ArgSoftmaxDecider
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
-        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, stride=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=2, kernel_size=1, stride=1, padding=1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -198,11 +198,11 @@ class KeyResnet(nn.Module):
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
-        # x = x.view(x.size(0), x.size(1), -1).contiguous()
-        # fc = nn.Linear(x.size(2), self.keypoints)
-        # x = fc(x)
-        # x = self.sigmoid(x)
-        # x = x.transpose(1, 2).contiguous()
+        x = x.view(x.size(0), x.size(1), -1).contiguous()
+        fc = nn.Linear(x.size(2), self.keypoints)
+        x = fc(x)
+        x = self.sigmoid(x)
+        x = x.transpose(1, 2).contiguous()
 
         return x
 

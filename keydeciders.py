@@ -200,3 +200,12 @@ class GravitationDecider:
 
         else:
             raise Exception('Gravitation mode must be either \'train\' or \'detect\'!')
+
+
+class OrdinaryDecider:
+    def __init__(self, imgsz):
+        self.image_size = imgsz
+
+    def __call__(self, **kwargs):
+        inputs = kwargs.get('inputs')
+        return inputs * torch.tensor(self.image_size)

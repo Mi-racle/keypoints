@@ -10,6 +10,8 @@ import numpy as np
 import torch
 from PIL import ImageDraw
 from matplotlib import pyplot as plt
+from scipy.optimize import linear_sum_assignment
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -112,3 +114,21 @@ def log_epoch(logger, epoch, model, loss, accuracy):
     logger.save_model('best.pt', model)
 
     print(f'Average loss in this epoch: {loss}')
+
+
+def kuhn_kunkres(graph: Tensor):
+    pred, match = linear_sum_assignment(graph.detach())
+    total_distance = torch.sum(graph[pred, match])
+    return torch.tensor(match), total_distance
+
+
+def make_graph(pred: Tensor, target: Tensor):
+    keypoints = pred.size(0)
+    pred = torch.unsqueeze(pred, 0)
+    pred = pred.repeat(keypoints, 1, 1)
+    pred = pred.permute(1, 0, 2)
+    vector = pred - target
+    graph = torch.pow(vector, 2)
+    graph = torch.sum(graph, -1)
+    graph = torch.sqrt(graph)
+    return graph
