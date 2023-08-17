@@ -74,6 +74,9 @@ def run():
     loaded_set = load_dataset(dataset, batch_size, imgsz)
     loss_computer = LossComputer(keypoints=keypoints, imgsz=imgsz, grids=grids)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.99))
+
+    if not os.path.exists(ROOT / 'logs'):
+        os.mkdir(ROOT / 'logs')
     logger = Logger(increment_path(ROOT / 'logs' / 'train'))
     for epoch in range(0, epochs):
         print(f'Epoch {epoch}:')
