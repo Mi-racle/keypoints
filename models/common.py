@@ -176,7 +176,9 @@ class KeyResnet(nn.Module):
         # for ArgSoftmaxDecider
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
-        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=2, kernel_size=1, stride=1, padding=1)
+        self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2, kernel_size=1, padding=1)
+        self.fc = nn.Linear(144, keypoints)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -184,11 +186,11 @@ class KeyResnet(nn.Module):
         x = self.layer(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        # x = self.layer4(x)
+        p = self.layer4(x)
         # x = self.deconv(x)
         # x = self.deconv2(x)
         # x = self.deconv3(x)
-        x = self.final_layer(x)
+        p = self.final_layer(p)
 
         if self.visualize:
             file = Path(__file__).resolve()
@@ -198,13 +200,15 @@ class KeyResnet(nn.Module):
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
-        x = x.view(x.size(0), x.size(1), -1).contiguous()
-        fc = nn.Linear(x.size(2), self.keypoints)
-        x = fc(x)
-        x = self.sigmoid(x)
-        x = x.transpose(1, 2).contiguous()
+        p = p.view(p.size(0), p.size(1), -1).contiguous()
+        p = self.fc(p)
+        p = self.sigmoid(p)
+        p = p.transpose(1, 2).contiguous()
 
-        return x
+        x = self.penultimate_layer(x)
+        x = self.sigmoid(x)
+
+        return x, p
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):
