@@ -36,7 +36,7 @@ class GravitationLoss:
 
         yns = torch.linspace(0, self.image_size[0], height).view(-1, 1).repeat(1, width)
         xns = torch.linspace(0, self.image_size[1], width).repeat(height, 1)
-        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2).view(height * width, 2)
+        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2).view(height * width, 2).to(pred.device)
 
         bkforces = []
         for i in range(batch_size):
