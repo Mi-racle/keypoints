@@ -191,7 +191,7 @@ class GravitationDecider:
                 kxns = (bottomk % width + 0.5) / width
                 keypoints = torch.stack([kyns, kxns])
                 keypoints = torch.transpose(keypoints, 0, 1)
-                keypoints = keypoints * torch.tensor(self.image_size)
+                keypoints = keypoints * torch.tensor(self.image_size, device=keypoints.device)
                 bkeypoints.append(keypoints)
 
             bkeypoints = torch.stack(bkeypoints)
@@ -208,4 +208,4 @@ class OrdinaryDecider:
 
     def __call__(self, **kwargs):
         inputs = kwargs.get('inputs')
-        return inputs * torch.tensor(self.image_size)
+        return inputs * torch.tensor(self.image_size, device=inputs.device)

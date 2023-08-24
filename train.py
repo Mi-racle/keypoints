@@ -45,7 +45,7 @@ def parse_opt(known=False):
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=120, type=int)
-    parser.add_argument('--depth', default=101, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
+    parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints')
     parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
