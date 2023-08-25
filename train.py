@@ -59,7 +59,7 @@ def run():
     opt = parse_opt()
     dataset = opt.data
     batch_size = opt.batchsz
-    device = opt.device if not torch.cuda.is_available() or opt.device == 'cpu' else 'cuda:' + str(opt.device)
+    device = 'cpu' if not torch.cuda.is_available() or opt.device == 'cpu' else 'cuda:' + str(opt.device)
     device = torch.device(device)
     epochs = opt.epochs
     depth = opt.depth

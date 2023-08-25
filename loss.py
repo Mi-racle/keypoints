@@ -94,7 +94,7 @@ class LossComputer:
         ldis = self.distance_loss(keypoints, target)
         lgra = self.gravitation_loss(keypoints, heatmap)
 
-        # loss = ldis + 400 * lgra
-        loss = ldis
+        # loss = ldis + 1000 * lgra
+        loss = lgra
 
         return loss
