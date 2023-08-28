@@ -1,12 +1,12 @@
 import torch
+from scipy.optimize import linear_sum_assignment
 from torch import nn
 
-from keydeciders import GravitationDecider, OrdinaryDecider
-from utils import make_graph, kuhn_kunkres
+from keydeciders import OrdinaryDecider
 
 
 class DistanceLoss:
-    def __init__(self, norm: float = 1.0):
+    def __init__(self, norm: float = 2.0):
         r"""
         Compute the pairwise distance between input vectors.
         :param norm: the norm degree. 1.0 results in Manhattan Distance; 2.0 results in Euclidean Distance.
@@ -15,6 +15,27 @@ class DistanceLoss:
         self.distance = nn.PairwiseDistance(p=norm)
 
     def __call__(self, pred, target):
+
+        batched_distance_matrix = []
+
+        for i in range(target.size(0)):  # batch
+            distance_matrix = []
+            ta, pr = target[i], pred[i]
+
+            for j in range(pr.size(0)):  # target point
+                distance_vector = []
+                p = pr[j]
+
+                for k in range(ta.size(0)):  # pred point
+                    t = ta[k]
+                    distance = self.distance(p, t)
+                    distance_vector.append(distance.item())
+
+                distance_matrix.append(distance_vector)
+
+            row, col = linear_sum_assignment(distance_matrix)
+            target[i] = ta[col]
+
         dis = self.distance(pred, target)
 
         return torch.mean(dis)
@@ -94,7 +115,6 @@ class LossComputer:
         ldis = self.distance_loss(keypoints, target)
         lgra = self.gravitation_loss(keypoints, heatmap)
 
-        # loss = ldis + 1000 * lgra
-        loss = lgra
+        loss = ldis + 5e3 * lgra
 
         return loss

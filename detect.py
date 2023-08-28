@@ -28,7 +28,7 @@ def detect(
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train12' / 'best.pt')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train19' / 'best.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
