@@ -1,4 +1,6 @@
 import argparse
+from pathlib import Path
+from typing import Union
 
 import torch
 from torch import nn
@@ -14,9 +16,9 @@ def detect(
         device: torch.device,
         model: nn.Module,
         loaded_set: DataLoader,
-        key_decider
+        key_decider,
+        output_dir: Union[str, Path]
 ):
-    output_dir = increment_path(ROOT / 'logs' / 'detect')
 
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
         inputs, target = inputs.to(device), target.to(device)
@@ -28,7 +30,7 @@ def detect(
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train20' / 'best.pt')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train23' / 'best.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
@@ -37,6 +39,7 @@ def parse_opt(known=False):
     parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
+    parser.add_argument('--mode', default='test', type=str, help='val or test')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
@@ -54,13 +57,18 @@ def run():
     visualize = opt.visualize
     image_size = opt.imgsz
     image_size = [image_size[0], image_size[0]] if len(image_size) == 1 else image_size[0: 2]
+    mode = opt.mode
+
     model = KeyResnet(depth, keypoints, visualize)
     model.load_state_dict(torch.load(weights, map_location=device))
     model.to(device)
-    loaded_set = load_dataset(dataset, batch_size, image_size)
+    loaded_set = load_dataset(dataset, batch_size, image_size, mode)
     key_decider = OrdinaryDecider(image_size)
+    output_dir = increment_path(ROOT / 'logs' / 'detect')
 
-    detect(device, model, loaded_set, key_decider)
+    detect(device, model, loaded_set, key_decider, output_dir)
+
+    print(f'\033[92mResults have saved to {output_dir}\033[0m')
 
 
 if __name__ == '__main__':

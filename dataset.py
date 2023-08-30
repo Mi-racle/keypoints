@@ -11,11 +11,12 @@ import json
 
 class KeyPointDataset(Dataset):
 
-    def __init__(self, dataset: Union[str, Path], imgsz: list):
+    def __init__(self, dataset: Union[str, Path], imgsz: list, mode: str):
         super().__init__()
         image_path = Path(dataset) / 'images'
         # label_path = Path(dataset) / 'labels'
         self.image_size = imgsz
+        self.mode = mode
         self.obj_paths = []
         # self.lbl_paths = []
 
@@ -37,12 +38,15 @@ class KeyPointDataset(Dataset):
         obj = transforms.ToTensor()(obj)
         # TODO
 
-        lbl_path = obj_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
-        f = open(lbl_path, 'r')
-        dic = json.load(f)
-        f.close()
-        points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
-        target = torch.tensor(points, requires_grad=True)
+        if self.mode is not 'test':
+            lbl_path = obj_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
+            f = open(lbl_path, 'r')
+            dic = json.load(f)
+            f.close()
+            points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
+            target = torch.tensor(points, requires_grad=True)
+        else:
+            target = torch.tensor([])
 
         return obj, target
 

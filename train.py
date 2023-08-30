@@ -73,21 +73,24 @@ def run():
     model = KeyResnet(depth, keypoints, visualize)
     # model.load_state_dict(torch.load('best.pt'))
     model.to(device)
-    loaded_set = load_dataset(dataset, batch_size, imgsz)
+    loaded_set = load_dataset(dataset, batch_size, imgsz, 'train')
     loss_computer = LossComputer(keypoints=keypoints, imgsz=imgsz, grids=grids)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.99))
 
     if not os.path.exists(ROOT / 'logs'):
         os.mkdir(ROOT / 'logs')
-    logger = Logger(increment_path(ROOT / 'logs' / 'train'))
+    output_dir = increment_path(ROOT / 'logs' / 'train')
+    logger = Logger(output_dir)
+
     for epoch in range(0, epochs):
         print(f'Epoch {epoch}:')
         model.train()
         loss = train(device, model, loaded_set, loss_computer, optimizer)
         log_epoch(logger, epoch, model, loss, 0)
 
+    print(f'\033[92mResults have saved to {output_dir}\033[0m')
+
     # TODO
-    print('run todo')
 
 
 if __name__ == '__main__':
