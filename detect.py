@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 from typing import Union
 
@@ -64,6 +65,9 @@ def run():
     model.to(device)
     loaded_set = load_dataset(dataset, batch_size, image_size, mode)
     key_decider = OrdinaryDecider(image_size)
+
+    if not os.path.exists(ROOT / 'logs'):
+        os.mkdir(ROOT / 'logs')
     output_dir = increment_path(ROOT / 'logs' / 'detect')
 
     detect(device, model, loaded_set, key_decider, output_dir)
