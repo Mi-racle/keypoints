@@ -8,9 +8,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from dataset import KeyPointDataset
 from keydeciders import GravitationDecider, OrdinaryDecider
 from models.common import KeyResnet
-from utils import load_dataset, ROOT, plot_image, increment_path
+from utils import ROOT, plot_images, increment_path
 
 
 def detect(
@@ -25,7 +26,7 @@ def detect(
         inputs, target = inputs.to(device), target.to(device)
         pred = model(inputs)  # pred: (heatmaps, keypoints)
         bkeypoints = key_decider(inputs=pred[1])
-        plot_image(inputs, bkeypoints, output_dir)
+        plot_images(inputs, bkeypoints, output_dir)
         # TODO
 
 
@@ -41,6 +42,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
     parser.add_argument('--mode', default='test', type=str, help='val or test')
+    parser.add_argument('--augment', default=True, type=bool)
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
@@ -56,15 +58,20 @@ def run():
     keypoints = opt.keypoints
     grids = opt.grids
     visualize = opt.visualize
-    image_size = opt.imgsz
-    image_size = [image_size[0], image_size[0]] if len(image_size) == 1 else image_size[0: 2]
+    imgsz = opt.imgsz
+    imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
     mode = opt.mode
+    augment = opt.augment
 
     model = KeyResnet(depth, keypoints, visualize)
     model.load_state_dict(torch.load(weights, map_location=device))
     model.to(device)
-    loaded_set = load_dataset(dataset, batch_size, image_size, mode)
-    key_decider = OrdinaryDecider(image_size)
+
+    absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
+    data = KeyPointDataset(absolute_set, imgsz, mode, augment)
+    loaded_set = DataLoader(dataset=data, batch_size=batch_size)
+
+    key_decider = OrdinaryDecider(imgsz)
 
     if not os.path.exists(ROOT / 'logs'):
         os.mkdir(ROOT / 'logs')

@@ -12,31 +12,30 @@ from PIL import ImageDraw
 from matplotlib import pyplot as plt
 from scipy.optimize import linear_sum_assignment
 from torch import Tensor
-from torch.utils.data import DataLoader
 from torchvision import transforms
-
-from dataset import KeyPointDataset
 
 ROOT = FILE = Path(__file__).resolve().parents[0]
 
 
-def load_dataset(
-        dataset: Union[str, Path],
-        batch_size: int,
-        image_size: list[int],
-        mode: str
-):
-    r"""
-    Loads data.
-    :param Union[str, Path] dataset: path of the dataset from which to load the data
-    :param int batch_size: size of one batch
-    :param list[int] image_size: size of the longer one of width and height
-    :param str mode: train, val or test
-    """
-    absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
-    data = KeyPointDataset(absolute_set, image_size, mode)
-    loaded_set = DataLoader(dataset=data, batch_size=batch_size)
-    return loaded_set
+# def load_dataset(
+#         dataset: Union[str, Path],
+#         batch_size: int,
+#         image_size: list[int],
+#         mode: str,
+#         augment: int,
+# ):
+#     r"""
+#     Loads data.
+#     :param Union[str, Path] dataset: path of the dataset from which to load the data
+#     :param int batch_size: size of one batch
+#     :param list[int] image_size: size of the longer one of width and height
+#     :param str mode: train, val or test
+#     :param augment: augment the images or not
+#     """
+#     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
+#     data = KeyPointDataset(absolute_set, image_size, mode, augment)
+#     loaded_set = DataLoader(dataset=data, batch_size=batch_size)
+#     return loaded_set
 
 
 def draw_heatmap(width, height, x, save_name):
@@ -82,7 +81,7 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
     return dst_path
 
 
-def plot_image(inputs, bkeypoints, path: Path):
+def plot_images(inputs, bkeypoints, path: Path):
     transformer = transforms.ToPILImage()
 
     if not os.path.exists(path):
