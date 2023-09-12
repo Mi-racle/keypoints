@@ -59,7 +59,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--augment', default=8, type=int, help='0 for no augmenting while positive int for multiple')
+    parser.add_argument('--augment', default=64, type=int, help='0 for no augmenting while positive int for multiple')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
