@@ -52,7 +52,8 @@ def parse_opt(known=False):
     parser.add_argument('--data', default=ROOT / 'datasets/testset2')
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
-    parser.add_argument('--epochs', default=120, type=int)
+    parser.add_argument('--epochs', default=2000, type=int)
+    parser.add_argument('--early-stopping', default=30, type=int)
     parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
     parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints')
     parser.add_argument('--grids', default=16, type=int)
@@ -71,6 +72,7 @@ def run():
     device = 'cpu' if not torch.cuda.is_available() or opt.device == 'cpu' else 'cuda:' + str(opt.device)
     device = torch.device(device)
     epochs = opt.epochs
+    early_stopping = opt.early_stopping
     depth = opt.depth
     keypoints = opt.keypoints
     grids = opt.grids
@@ -81,8 +83,7 @@ def run():
     augment = opt.augment
 
     model = KeyResnet(depth, keypoints, visualize)
-    # model.load_state_dict(torch.load('best.pt'))
-    model.to(device)
+    model = model.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
     data = KeyPointDataset(absolute_set, imgsz, 'train', augment)
@@ -96,15 +97,27 @@ def run():
     output_dir = increment_path(ROOT / 'logs' / 'train')
     logger = Logger(output_dir)
 
+    best_loss = float('inf')
+    patience = 0
+
     for epoch in range(0, epochs):
+
         print(f'Epoch {epoch}:')
         model.train()
         loss = train(device, model, loaded_set, loss_computer, optimizer)
-        log_epoch(logger, epoch, model, loss, 0)
+        log_epoch(logger, epoch, model, loss, best_loss, 0)
+
+        if loss < best_loss:
+            best_loss = loss
+            patience = 0
+
+        else:
+            patience += 1
+
+            if patience > early_stopping:
+                break
 
     print(f'\033[92mResults have saved to {output_dir}\033[0m')
-
-    # TODO
 
 
 if __name__ == '__main__':
