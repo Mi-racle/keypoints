@@ -106,16 +106,21 @@ class LossComputer:
         self.distance_loss = DistanceLoss(norm=2.0)
         self.gravitation_loss = GravitationLoss(imgsz)
 
-    def __call__(self, pred, target):
-        # pred = self.key_decider(inputs=pred, target=target, mode='train')
+    def __call__(self, pred, targets, transformed_pred, transformed_targets):
+        # pred = self.key_decider(inputs=pred, targets=targets, mode='train')
         heatmap = pred[0]
         keypoints = pred[1]
         keypoints = self.key_decider(inputs=keypoints)
 
-        ldis = self.distance_loss(keypoints, target)
+        ldis = self.distance_loss(keypoints, targets)
         # lgra = self.gravitation_loss(keypoints, heatmap)
 
+        transformed_keypoints = transformed_pred[1]
+        transformed_keypoints = self.key_decider(inputs=transformed_keypoints)
+
+        ldis2 = self.distance_loss(transformed_keypoints, transformed_targets)
+
         # loss = ldis + 5e3 * lgra
-        loss = ldis
+        loss = ldis + ldis2
 
         return loss

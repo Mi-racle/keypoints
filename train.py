@@ -7,7 +7,9 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import numpy as np
 
+from augmentor import Augmentor
 from dataset import KeyPointDataset
 from logger import Logger
 from loss import LossComputer
@@ -20,21 +22,43 @@ def train(
         model: nn.Module,
         loaded_set: DataLoader,
         loss_computer: LossComputer,
-        optimizer: Optimizer
+        optimizer: Optimizer,
+        augmentor: Augmentor,
 ):
     total_loss = 0
 
-    for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+    for i, (inputs, targets) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
 
-        inputs, target = inputs.to(device), target.to(device)
+        inputs, targets = inputs.to(device), targets.to(device)
         # [batch size, augment, 3, height, width] -> [batch size * augment, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1), inputs.size(2), inputs.size(3), inputs.size(4))
         # [batch size, augment, keypoints, 2] -> [batch size * augment, keypoints, 2]
-        target = target.view(target.size(0) * target.size(1), target.size(2), target.size(3))
+        targets = targets.view(targets.size(0) * targets.size(1), targets.size(2), targets.size(3))
 
         # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
         pred = model(inputs)
-        loss = loss_computer(pred, target)
+
+        inputs = torch.permute(inputs, (0, 2, 3, 1))
+        ndarray_inputs = inputs.numpy()
+
+        transformed_inputs = []
+        transformed_targets = []
+
+        for j in range(ndarray_inputs.shape[0]):
+
+            ndarray_input, target = ndarray_inputs[j], targets[j]
+            ndarray_input, target = augmentor(ndarray_input, target, 1)
+            ndarray_input, target = ndarray_input[0], target[0]
+            transformed_inputs.append(ndarray_input)
+            transformed_targets.append(target)
+
+        transformed_inputs, transformed_targets = np.array(transformed_inputs), np.array(transformed_targets)
+        transformed_inputs, transformed_targets = torch.tensor(transformed_inputs), torch.tensor(transformed_targets)
+        transformed_inputs = torch.permute(transformed_inputs, (0, 3, 1, 2))
+
+        transformed_pred = model(transformed_inputs)
+
+        loss = loss_computer(pred, targets, transformed_pred, transformed_targets)
         total_loss += loss.item()
         # print(loss.item())
 
@@ -60,7 +84,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--augment', default=64, type=int, help='0 for no augmenting while positive int for multiple')
+    parser.add_argument('--augment', default=4, type=int, help='0 for no augmenting while positive int for multiple')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
 
@@ -90,7 +114,10 @@ def run():
     loaded_set = DataLoader(dataset=data, batch_size=batch_size)
 
     loss_computer = LossComputer(keypoints=keypoints, imgsz=imgsz, grids=grids)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.99))
+
+    augmentor = Augmentor()
 
     if not os.path.exists(ROOT / 'logs'):
         os.mkdir(ROOT / 'logs')
@@ -104,7 +131,7 @@ def run():
 
         print(f'Epoch {epoch}:')
         model.train()
-        loss = train(device, model, loaded_set, loss_computer, optimizer)
+        loss = train(device, model, loaded_set, loss_computer, optimizer, augmentor)
         log_epoch(logger, epoch, model, loss, best_loss, 0)
 
         if loss < best_loss:
