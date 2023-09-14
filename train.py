@@ -29,18 +29,12 @@ def train(
 
     for i, (inputs, targets) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
 
-        inputs, targets = inputs.to(device), targets.to(device)
         # [batch size, augment, 3, height, width] -> [batch size * augment, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1), inputs.size(2), inputs.size(3), inputs.size(4))
         # [batch size, augment, keypoints, 2] -> [batch size * augment, keypoints, 2]
         targets = targets.view(targets.size(0) * targets.size(1), targets.size(2), targets.size(3))
 
-        # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
-        pred = model(inputs)
-
-        inputs = torch.permute(inputs, (0, 2, 3, 1))
-        ndarray_inputs = inputs.numpy()
-
+        ndarray_inputs = torch.permute(inputs, (0, 2, 3, 1)).numpy()
         transformed_inputs = []
         transformed_targets = []
 
@@ -55,6 +49,12 @@ def train(
         transformed_inputs, transformed_targets = np.array(transformed_inputs), np.array(transformed_targets)
         transformed_inputs, transformed_targets = torch.tensor(transformed_inputs), torch.tensor(transformed_targets)
         transformed_inputs = torch.permute(transformed_inputs, (0, 3, 1, 2))
+
+        inputs, targets = inputs.to(device), targets.to(device)
+        transformed_inputs, transformed_targets = transformed_inputs.to(device), transformed_targets.to(device)
+
+        # pred size: [batch_size, heatmaps, 3], 3 means [xi, yi, vi]
+        pred = model(inputs)
 
         transformed_pred = model(transformed_inputs)
 
