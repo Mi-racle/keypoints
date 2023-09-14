@@ -176,12 +176,13 @@ class KeyResnet(nn.Module):
         # for ArgSoftmaxDecider
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
-        # self.attention = nn.MultiheadAttention(12, 4, batch_first=True)
+        self.attention = nn.MultiheadAttention(12, 4, batch_first=True)
         self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
         self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=1, kernel_size=1, padding=1)
+        self.fl = nn.Conv2d(in_channels=1, out_channels=2, kernel_size=1, padding=1)
         # self.penultimate_layer = Conv(resnet['couts'][2], 1, p=1)
         # self.final_layer = Conv(resnet['couts'][3], 1, p=1)
-        self.fc = nn.Linear(144, keypoints)
+        self.fc = nn.Linear(196, keypoints)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -194,6 +195,11 @@ class KeyResnet(nn.Module):
         # x = self.deconv2(x)
         # x = self.deconv3(x)
         p = self.final_layer(p)
+
+        p = p.view(p.size(0), p.size(2), p.size(3))
+        p, _ = self.attention(p, p, p)
+        p = p.view(p.size(0), 1, p.size(1), p.size(2))
+        p = self.fl(p)
 
         if self.visualize:
             file = Path(__file__).resolve()
