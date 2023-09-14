@@ -177,10 +177,10 @@ class KeyResnet(nn.Module):
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
         # self.attention = nn.MultiheadAttention(12, 4, batch_first=True)
-        # self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
-        # self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=1, kernel_size=1, padding=1)
-        self.penultimate_layer = Conv(resnet['couts'][2], 1, p=1)
-        self.final_layer = Conv(resnet['couts'][3], 1, p=1)
+        self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=1, kernel_size=1, padding=1)
+        # self.penultimate_layer = Conv(resnet['couts'][2], 1, p=1)
+        # self.final_layer = Conv(resnet['couts'][3], 1, p=1)
         self.fc = nn.Linear(144, keypoints)
         self.sigmoid = nn.Sigmoid()
 
