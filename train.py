@@ -73,7 +73,7 @@ def train(
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default=ROOT / 'datasets/testset2')
+    parser.add_argument('--data', default=ROOT / 'datasets/testset2', type=str)
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=2000, type=int)

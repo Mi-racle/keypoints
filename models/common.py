@@ -176,6 +176,7 @@ class KeyResnet(nn.Module):
         # for ArgSoftmaxDecider
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
+        # self.attention = nn.MultiheadAttention(4, )
         self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
         self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2, kernel_size=1, padding=1)
         self.fc = nn.Linear(144, keypoints)
