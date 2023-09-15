@@ -73,13 +73,13 @@ def train(
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default=ROOT / 'datasets/animal_train', type=str)
+    parser.add_argument('--data', default=ROOT / 'datasets/testset2', type=str)
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=2000, type=int)
     parser.add_argument('--early-stopping', default=30, type=int)
     parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
-    parser.add_argument('--keypoints', default=20, type=int, help='the number of keypoints')
+    parser.add_argument('--keypoints', default=16, type=int, help='the number of keypoints')
     parser.add_argument('--grids', default=16, type=int)
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')

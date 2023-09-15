@@ -20,8 +20,8 @@ class Conv(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
-        # self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
-        self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
@@ -85,8 +85,8 @@ class BasicBlock(nn.Module):
         self.conv = Conv(cin, mid, k=3, s=s)
         self.conv2 = Conv(mid, cout, k=3, s=1, act=False)
         self.down_sample = Conv(cin, cout, k=1, s=s, act=False)
-        # self.act = nn.ReLU()
-        self.act = nn.SiLU()
+        self.act = nn.ReLU()
+        # self.act = nn.SiLU()
 
     def forward(self, x):
         residual = x
@@ -107,8 +107,8 @@ class Bottleneck(nn.Module):
         self.conv2 = Conv(mid, mid, k=3, s=1)
         self.conv3 = Conv(mid, cout, k=1, s=1, act=False)
         self.down_sample = Conv(cin, cout, k=1, s=s, act=False)
-        # self.act = nn.ReLU()
-        self.act = nn.SiLU()
+        self.act = nn.ReLU()
+        # self.act = nn.SiLU()
 
     def forward(self, x):
         residual = x
