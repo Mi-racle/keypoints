@@ -16,7 +16,12 @@ class KeyPointDataset(Dataset):
 
         super().__init__()
 
-        image_path = Path(dataset) / 'images'
+        image_path = Path(dataset)
+
+        if os.path.exists(Path(dataset) / 'images'):
+
+            image_path = (Path(dataset) / 'images')
+
         self.image_size = imgsz
         self.mode = mode
         self.augment = augment

@@ -33,7 +33,7 @@ def detect(
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', default=ROOT / 'logs' / 'train14' / 'best.pt')
-    parser.add_argument('--data', default=ROOT / 'datasets/A01')
+    parser.add_argument('--data', default=ROOT / 'datasets/A01_0524')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')

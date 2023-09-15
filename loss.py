@@ -16,8 +16,6 @@ class DistanceLoss:
 
     def __call__(self, pred, target):
 
-        batched_distance_matrix = []
-
         for i in range(target.size(0)):  # batch
             distance_matrix = []
             ta, pr = target[i], pred[i]

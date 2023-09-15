@@ -18,10 +18,11 @@ class Conv(nn.Module):
     # Standard convolution
     def __init__(self, cin, cout, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
-        self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
+        # self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
+        self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), 2, groups=g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
-        self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
-        # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        # self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
