@@ -80,8 +80,28 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
     return dst_path
 
 
-def plot_images(inputs, bkeypoints, path: Path):
-    transformer = transforms.ToPILImage()
+# def plot_images(inputs, bkeypoints, path: Path):
+#     transformer = transforms.ToPILImage()
+#
+#     if not os.path.exists(path):
+#         os.mkdir(path)
+#
+#     batch_size = inputs.size(0)
+#
+#     for i in range(batch_size):
+#         image = inputs[i]
+#         image = transformer(image)
+#         drawer = ImageDraw.Draw(image)
+#
+#         keypoints = bkeypoints[i]
+#         for keypoint in keypoints:
+#             y, x = keypoint[0], keypoint[1]
+#             drawer.ellipse(((x - 5, y - 5), (x + 5, y + 5)), fill=(0, 255, 0))
+#
+#         image.save(increment_path(path / 'image.jpg'))
+
+
+def plot_images(inputs: Tensor, bkeypoints, path: Path):
 
     if not os.path.exists(path):
         os.mkdir(path)
@@ -90,15 +110,17 @@ def plot_images(inputs, bkeypoints, path: Path):
 
     for i in range(batch_size):
         image = inputs[i]
-        image = transformer(image)
-        drawer = ImageDraw.Draw(image)
+        image = torch.permute(image, (1, 2, 0))
+        image = image.numpy()
+        image = cv2.UMat(image)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         keypoints = bkeypoints[i]
         for keypoint in keypoints:
             y, x = keypoint[0], keypoint[1]
-            drawer.ellipse(((x - 5, y - 5), (x + 5, y + 5)), fill=(0, 255, 0))
+            cv2.circle(image, (int(x), int(y)), 5, (0, 255, 0), -1)
 
-        image.save(increment_path(path / 'image.jpg'))
+        cv2.imwrite(increment_path(path / 'image.jpg').__str__(), image)
 
 
 def log_epoch(logger, epoch, model, loss, best_loss, accuracy):
