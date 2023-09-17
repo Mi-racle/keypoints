@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Union
 
 import cv2
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -83,10 +84,12 @@ class KeyPointDataset(Dataset):
 
         else:
 
-            obj_lists, points_lists = [obj_list], []
+            obj_lists, points_lists = [obj_list], [points_list]
 
+        points_lists = np.array(points_lists)
         points_lists = torch.tensor(points_lists)
 
+        obj_lists = np.array(obj_lists)
         obj_lists = torch.tensor(obj_lists, dtype=torch.float32)
         obj_lists = torch.permute(obj_lists, (0, 1, 4, 2, 3)) if self.mode != 'test' else torch.permute(obj_lists, (0, 3, 1, 2))
 

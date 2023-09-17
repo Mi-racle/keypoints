@@ -58,8 +58,6 @@ class Augmentor:
             transformed_image_lists.append(transformed_image_list)
             transformed_keypoints_lists.append(transformed_keypoints_list)
 
-        transformed_image_lists = np.array(transformed_image_lists)
-        transformed_keypoints_lists = np.array(transformed_keypoints_lists)
         return transformed_image_lists, transformed_keypoints_lists
 
 

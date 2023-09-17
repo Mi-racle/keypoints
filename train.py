@@ -76,7 +76,7 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data', default=ROOT / 'datasets/testset2', type=str)
+    parser.add_argument('--data', default=ROOT / 'datasets/testset3/train', type=str)
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=2000, type=int)
@@ -87,7 +87,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--augment', default=2, type=int, help='0 for no augmenting while positive int for augment')
+    parser.add_argument('--augment', default=0, type=int, help='0 for no augmenting while positive int for augment')
     parser.add_argument('--views', default=4, type=int, help='number of multi views')
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
