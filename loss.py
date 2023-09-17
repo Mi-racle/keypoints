@@ -107,7 +107,7 @@ class EdgeLoss:
 
         groups = pred.size(0) // self.views
 
-        total = torch.tensor(0.)
+        total = torch.tensor(0., device=pred.device)
 
         for i in range(groups):  # group
 
