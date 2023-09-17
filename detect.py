@@ -23,15 +23,19 @@ def detect(
 ):
 
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+
         inputs, target = inputs.to(device), target.to(device)
-        pred = model(inputs)  # pred: (heatmaps, keypoints)
+        # pred: (batched heatmaps, batched keypoints, batched edge matrices)
+        pred = model(inputs)
         bkeypoints = key_decider(inputs=pred[1])
         plot_images(inputs, bkeypoints, output_dir)
         # TODO
 
 
 def parse_opt(known=False):
+
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--weights', default=ROOT / 'logs' / 'train14' / 'best.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/A01_0524')
     parser.add_argument('--batchsz', default=1, type=int)
@@ -42,12 +46,15 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
     parser.add_argument('--mode', default='test', type=str, help='val or test')
-    parser.add_argument('--augment', default=True, type=bool)
+    parser.add_argument('--views', default=4, type=int)
+
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
+
     return opt
 
 
 def run():
+
     opt = parse_opt()
     weights = opt.weights
     dataset = opt.data
@@ -61,14 +68,14 @@ def run():
     imgsz = opt.imgsz
     imgsz = [imgsz[0], imgsz[0]] if len(imgsz) == 1 else imgsz[0: 2]
     mode = opt.mode
-    augment = opt.augment
+    views = opt.views
 
     model = KeyResnet(depth, keypoints, visualize)
     model.load_state_dict(torch.load(weights, map_location=device))
     model = model.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
-    data = KeyPointDataset(absolute_set, imgsz, mode, augment)
+    data = KeyPointDataset(absolute_set, imgsz, mode, views=views)
     loaded_set = DataLoader(dataset=data, batch_size=batch_size)
 
     key_decider = OrdinaryDecider(imgsz)
@@ -83,4 +90,5 @@ def run():
 
 
 if __name__ == '__main__':
+
     run()

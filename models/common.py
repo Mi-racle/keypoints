@@ -100,8 +100,11 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
+
     def __init__(self, cin, mid, cout, s=1, residual=True):
+
         super().__init__()
+
         self.residual = residual
         self.conv = Conv(cin, mid, k=1, s=s)
         self.conv2 = Conv(mid, mid, k=3, s=1)
@@ -111,20 +114,29 @@ class Bottleneck(nn.Module):
         # self.act = nn.SiLU()
 
     def forward(self, x):
+
         residual = x
         out = self.conv(x)
         out = self.conv2(out)
         out = self.conv3(out)
+
         if self.residual:
+
             if residual.size() != out.size():
+
                 residual = self.down_sample(residual)
+
             out += residual
+
         return self.act(out)
 
 
 class KeyResnet(nn.Module):
+
     def __init__(self, depth, keypoints, visualize=False):
+
         super().__init__()
+
         self.keypoints = keypoints
         self.visualize = visualize
         self.resnets = {
@@ -179,11 +191,12 @@ class KeyResnet(nn.Module):
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
         self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
-        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2, kernel_size=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints, kernel_size=1, padding=1)
         self.fc = nn.Linear(144, keypoints)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+
         x = self.common_block(x)
         x = self.layer(x)
         x = self.layer2(x)
@@ -195,10 +208,14 @@ class KeyResnet(nn.Module):
         p = self.final_layer(p)
 
         if self.visualize:
+
             file = Path(__file__).resolve()
             root = file.parents[0].parents[0]
+
             if not os.path.exists(root / 'heatmaps'):
+
                 os.mkdir(root / 'heatmaps')
+
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
@@ -207,10 +224,14 @@ class KeyResnet(nn.Module):
         p = self.sigmoid(p)
         p = p.transpose(1, 2).contiguous()
 
+        e = p[:, :, : self.keypoints]
+
+        p = p[:, :, self.keypoints:]
+
         x = self.penultimate_layer(x)
         x = self.sigmoid(x)
 
-        return x, p
+        return x, p, e
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):

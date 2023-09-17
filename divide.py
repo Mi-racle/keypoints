@@ -81,7 +81,7 @@ for i, obj_path in enumerate(obj_paths):
 
         shutil.copyfile(obj_path, dst_train_path)
         with open(lbl_train_path, 'w') as f:
-            train_json = json.dumps(output, indent=4)
+            train_json = json.dumps(output, indent=2)
             f.write(train_json)
             f.close()
 
@@ -89,7 +89,7 @@ for i, obj_path in enumerate(obj_paths):
 
         shutil.copyfile(obj_path, ROOT / dst_test_path)
         with open(lbl_test_path, 'w') as f:
-            test_json = json.dumps(output, indent=4)
+            test_json = json.dumps(output, indent=2)
             f.write(test_json)
             f.close()
 

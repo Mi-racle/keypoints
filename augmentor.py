@@ -3,35 +3,64 @@ import numpy as np
 
 
 class Augmentor:
-    def __init__(self):
+    def __init__(self, views: int = 1):
 
-        self.transform = al.Compose([
-            al.HorizontalFlip(p=0.5),
-            al.RandomBrightnessContrast(p=0.6),
-            al.GaussianBlur(p=0.6),
-            al.Rotate(limit=60, p=0.5),
-            al.Affine(p=0.6),
-            al.HueSaturationValue(p=0.4)
-        ], keypoint_params=al.KeypointParams(format='yx', remove_invisible=False))
+        self.views = views
 
-    def __call__(self, aimage, keypoints, multiple: int):
+        additional_targets = {}
 
-        transformed_images = []
-        transformed_keypointses = []
+        for i in range(1, self.views):
 
-        for i in range(multiple):
+            additional_targets[f'image{i}'] = 'image'
+            additional_targets[f'keypoints{i}'] = 'keypoints'
 
-            transformed = self.transform(image=aimage, keypoints=keypoints)
-            transformed_image = transformed['image']
-            transformed_keypoints = transformed['keypoints']
+        self.transform = al.Compose(
+            [
+                al.RandomBrightnessContrast(p=0.6),
+                al.GaussianBlur(p=0.6),
+                al.Rotate(limit=60, p=0.5),
+                al.Affine(p=0.6),
+                al.HueSaturationValue(p=0.4)
+            ],
+            keypoint_params=al.KeypointParams(format='yx', remove_invisible=False),
+            additional_targets=additional_targets
+        )
 
-            transformed_images.append(transformed_image)
-            transformed_keypointses.append(transformed_keypoints)
+    def __call__(self, image_list, keypoints_list, augment: int):
 
-        transformed_images = np.array(transformed_images)
-        transformed_keypointses = np.array(transformed_keypointses)
-        return transformed_images, transformed_keypointses
-        # TODO
+        assert self.views == len(image_list)
+
+        transformed_image_lists = []
+        transformed_keypoints_lists = []
+
+        for i in range(augment):
+
+            args = {
+                'image': image_list[0],
+                'keypoints': keypoints_list[0]
+            }
+
+            for j in range(1, self.views):
+
+                args[f'image{j}'] = image_list[j]
+                args[f'keypoints{j}'] = keypoints_list[j]
+
+            transformed = self.transform(**args)
+
+            transformed_image_list = [transformed['image']]
+            transformed_keypoints_list = [transformed['keypoints']]
+
+            for j in range(1, self.views):
+
+                transformed_image_list.append(transformed[f'image{j}'])
+                transformed_keypoints_list.append(transformed[f'keypoints{j}'])
+
+            transformed_image_lists.append(transformed_image_list)
+            transformed_keypoints_lists.append(transformed_keypoints_list)
+
+        transformed_image_lists = np.array(transformed_image_lists)
+        transformed_keypoints_lists = np.array(transformed_keypoints_lists)
+        return transformed_image_lists, transformed_keypoints_lists
 
 
 # img_path = 'datasets/testset2/images/Camera-GE501GC-C0A801E1-Snapshot-20230311-083624-820-820353307379_BMP.rf.b3113c05ac020e2b6e4d3abea5f6d96f.jpg'
@@ -56,4 +85,3 @@ class Augmentor:
 #     drawer.ellipse(((x - 5, y - 5), (x + 5, y + 5)), fill=(0, 255, 0))
 #
 # ti.save('image.jpg')
-

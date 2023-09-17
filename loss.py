@@ -1,6 +1,6 @@
 import torch
 from scipy.optimize import linear_sum_assignment
-from torch import nn
+from torch import nn, Tensor
 
 from keydeciders import OrdinaryDecider
 
@@ -17,14 +17,17 @@ class DistanceLoss:
     def __call__(self, pred, target):
 
         for i in range(target.size(0)):  # batch
+
             distance_matrix = []
             ta, pr = target[i], pred[i]
 
             for j in range(pr.size(0)):  # target point
+
                 distance_vector = []
                 p = pr[j]
 
                 for k in range(ta.size(0)):  # pred point
+
                     t = ta[k]
                     distance = self.distance(p, t)
                     distance_vector.append(distance.item())
@@ -91,11 +94,39 @@ class GravitationLoss:
         return torch.sum(deviation)
 
 
+class EdgeLoss:
+    def __init__(self, views: int = 1):
+
+        super(EdgeLoss, self).__init__()
+
+        self.views = views
+
+    def __call__(self, pred):
+
+        assert pred.size(0) % self.views == 0
+
+        groups = pred.size(0) // self.views
+
+        total = torch.tensor(0.)
+
+        for i in range(groups):  # group
+
+            matrices = pred[i * self.views: (i + 1) * self.views, :, :]
+            std = torch.std(matrices, dim=0)
+            std = torch.mean(std)
+            total += std
+
+        avg = total / groups
+
+        return avg
+
+
 class LossComputer:
     def __init__(self, **kwargs):
         keypoints = kwargs.get('keypoints')
         imgsz = kwargs.get('imgsz')
         grids = kwargs.get('grids')
+        views = kwargs.get('views')
         # self.key_decider = ArgSoftmaxDecider(imgsz)
         # self.key_decider = GridBasedDecider(keypoints, imgsz, grids)
         # self.key_decider = GravitationDecider(keypoints, imgsz)
@@ -103,11 +134,14 @@ class LossComputer:
 
         self.distance_loss = DistanceLoss(norm=2.0)
         self.gravitation_loss = GravitationLoss(imgsz)
+        self.edge_loss = EdgeLoss(views=views)
 
     def __call__(self, pred, targets, transformed_pred, transformed_targets):
         # pred = self.key_decider(inputs=pred, targets=targets, mode='train')
         heatmap = pred[0]
         keypoints = pred[1]
+        edge_matrices = pred[2]
+
         keypoints = self.key_decider(inputs=keypoints)
 
         ldis = self.distance_loss(keypoints, targets)
@@ -116,9 +150,11 @@ class LossComputer:
         transformed_keypoints = transformed_pred[1]
         transformed_keypoints = self.key_decider(inputs=transformed_keypoints)
 
-        ldis2 = self.distance_loss(transformed_keypoints, transformed_targets)
+        ltran = self.distance_loss(transformed_keypoints, transformed_targets)
+
+        ledge = self.edge_loss(edge_matrices)
 
         # loss = ldis + 5e3 * lgra
-        loss = ldis + ldis2
+        loss = ldis + ltran + 2e3 * ledge
 
         return loss
