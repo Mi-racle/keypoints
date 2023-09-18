@@ -145,16 +145,22 @@ def run():
         log_epoch(logger, epoch, model, loss, best_loss, 0)
 
         if loss < best_loss:
+
             best_loss = loss
             patience = 0
+            print(f'\033[92mBest loss achieved, patience reset to {early_stopping}\033[0m')
 
         else:
+
             patience += 1
+            print(f'\033[92mPatience left: {early_stopping - patience}\033[0m')
 
             if patience > early_stopping:
+
+                print(f'\033[92mTraining early stopped\033[0m')
                 break
 
-    print(f'\033[92mResults have saved to {output_dir}\033[0m')
+    print(f'\033[92mResults saved to {output_dir}\033[0m')
 
 
 if __name__ == '__main__':

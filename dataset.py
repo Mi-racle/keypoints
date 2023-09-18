@@ -18,7 +18,7 @@ class KeyPointDataset(Dataset):
             dataset: Union[str, Path],
             imgsz: list,
             mode: str,
-            augment: int = 1,
+            augment: int = 0,
             views: int = 1
     ):
 
@@ -91,7 +91,7 @@ class KeyPointDataset(Dataset):
 
         obj_lists = np.array(obj_lists)
         obj_lists = torch.tensor(obj_lists, dtype=torch.float32)
-        obj_lists = torch.permute(obj_lists, (0, 1, 4, 2, 3)) if self.mode != 'test' else torch.permute(obj_lists, (0, 3, 1, 2))
+        obj_lists = torch.permute(obj_lists, (0, 1, 4, 2, 3))
 
         return obj_lists, points_lists
 

@@ -25,6 +25,8 @@ def detect(
     for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
 
         inputs, target = inputs.to(device), target.to(device)
+        # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
+        inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
         # pred: (batched heatmaps, batched keypoints, batched edge matrices)
         pred = model(inputs)
         bkeypoints = key_decider(inputs=pred[1])
@@ -36,8 +38,8 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train14' / 'best.pt')
-    parser.add_argument('--data', default=ROOT / 'datasets/A01_0524')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train39' / 'best.pt')
+    parser.add_argument('--data', default=ROOT / 'datasets/testset4/test')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')
@@ -46,7 +48,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
     parser.add_argument('--mode', default='test', type=str, help='val or test')
-    parser.add_argument('--views', default=4, type=int)
+    parser.add_argument('--views', default=1, type=int)
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
 
@@ -86,7 +88,7 @@ def run():
 
     detect(device, model, loaded_set, key_decider, output_dir)
 
-    print(f'\033[92mResults have saved to {output_dir}\033[0m')
+    print(f'\033[92mResults saved to {output_dir}\033[0m')
 
 
 if __name__ == '__main__':
