@@ -123,7 +123,7 @@ def plot_images(inputs: Tensor, bkeypoints, path: Path):
         cv2.imwrite(increment_path(path / 'image.jpg').__str__(), image)
 
 
-def log_epoch(logger, epoch, model, loss, best_loss, accuracy):
+def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
     # 1. Log scalar values (scalar summary)
     info = {
         'loss': loss,
@@ -133,8 +133,8 @@ def log_epoch(logger, epoch, model, loss, best_loss, accuracy):
     for tag, value in info.items():
         logger.scalar_summary(tag, value, epoch)
 
-    if loss < best_loss:
-        logger.save_model('best.pt', model)
+    if accuracy < best_accuracy:
+        logger.save_model(f'best_{epoch}.pt', model)
 
     print(f'Average loss in this epoch: {loss}')
 

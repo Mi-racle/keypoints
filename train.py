@@ -11,8 +11,9 @@ import numpy as np
 
 from augmentor import Augmentor
 from dataset import KeyPointDataset, AnimalDataset
+from keydeciders import OrdinaryDecider
 from logger import Logger
-from loss import LossComputer
+from loss import LossComputer, DistanceLoss
 from models.common import KeyResnet
 from utils import log_epoch, ROOT, increment_path
 
@@ -72,11 +73,31 @@ def train(
     return average_loss
 
 
+def val(
+        device: torch.device,
+        model: nn.Module,
+        loaded_set: DataLoader,
+        key_decider
+):
+
+    for i, (inputs, targets) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+
+        inputs, targets = inputs.to(device), targets.to(device)
+        # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
+        inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
+        # pred: (batched heatmaps, batched keypoints, batched edge matrices)
+        pred = model(inputs)
+        bkeypoints = key_decider(inputs=pred[1])
+        acc = DistanceLoss(norm=2.0)(bkeypoints, targets)
+
+        return acc
+
+
 def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data', default=ROOT / 'datasets/testset3/train', type=str)
+    parser.add_argument('--data', default=ROOT / 'datasets/testset4/train', type=str)
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=2000, type=int)
@@ -122,6 +143,11 @@ def run():
     data = KeyPointDataset(absolute_set, imgsz, 'train', augment, views)
     # data = AnimalDataset(absolute_set, imgsz, 'train', augment)
     loaded_set = DataLoader(dataset=data, batch_size=batch_size)
+    absolute_valid_set = (dataset if Path(dataset).is_absolute() else ROOT / dataset).parents[0] / 'valid'
+    valid_data = KeyPointDataset(absolute_valid_set, imgsz, 'valid')
+    loaded_valid_set = DataLoader(dataset=valid_data, batch_size=batch_size)
+
+    key_decider = OrdinaryDecider(imgsz)
 
     loss_computer = LossComputer(keypoints=keypoints, imgsz=imgsz, grids=grids, views=views)
 
@@ -134,7 +160,7 @@ def run():
     output_dir = increment_path(ROOT / 'logs' / 'train')
     logger = Logger(output_dir)
 
-    best_loss = float('inf')
+    best_acc = float('inf')
     patience = 0
 
     for epoch in range(0, epochs):
@@ -142,13 +168,17 @@ def run():
         print(f'Epoch {epoch}:')
         model.train()
         loss = train(device, model, loaded_set, loss_computer, optimizer, augmentor)
-        log_epoch(logger, epoch, model, loss, best_loss, 0)
 
-        if loss < best_loss:
+        model.eval()
+        acc = val(device, model, loaded_valid_set, key_decider)
 
-            best_loss = loss
+        log_epoch(logger, epoch, model, loss, acc, best_acc)
+
+        if acc < best_acc:
+
+            best_acc = acc
             patience = 0
-            print(f'\033[92mBest loss achieved, patience reset to {early_stopping}\033[0m')
+            print(f'\033[92mBest accuracy achieved, patience reset to {early_stopping}\033[0m')
 
         else:
 
