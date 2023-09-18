@@ -85,10 +85,13 @@ def val(
         inputs, targets = inputs.to(device), targets.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
+        # [batch size, augment, views, keypoints, 2] -> [batch size * augment * views, keypoints, 2]
+        targets = targets.view(targets.size(0) * targets.size(1) * targets.size(2), targets.size(3), targets.size(4))
         # pred: (batched heatmaps, batched keypoints, batched edge matrices)
         pred = model(inputs)
         bkeypoints = key_decider(inputs=pred[1])
         acc = DistanceLoss(norm=2.0)(bkeypoints, targets)
+        acc = acc.item()
 
         return acc
 
@@ -97,7 +100,7 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--data', default=ROOT / 'datasets/testset4/train', type=str)
+    parser.add_argument('--data', default=ROOT / 'datasets/testset5/train', type=str)
     parser.add_argument('--batchsz', default=2, type=int)
     parser.add_argument('--device', default='cpu', type=str, help='cpu or 0 (cuda)')
     parser.add_argument('--epochs', default=2000, type=int)
