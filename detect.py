@@ -22,7 +22,7 @@ def detect(
         output_dir: Union[str, Path]
 ):
 
-    for i, (inputs, target) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+    for i, (inputs, target) in tqdm(enumerate(loaded_set), desc='Detect: ', total=len(loaded_set)):
 
         inputs, target = inputs.to(device), target.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]

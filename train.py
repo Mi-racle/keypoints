@@ -29,7 +29,7 @@ def train(
 
     total_loss = 0
 
-    for i, (inputs, targets) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+    for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Train: ', total=len(loaded_set)):
 
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
@@ -80,7 +80,7 @@ def val(
         key_decider
 ):
 
-    for i, (inputs, targets) in tqdm(enumerate(loaded_set), total=len(loaded_set)):
+    for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Val: ', total=len(loaded_set)):
 
         inputs, targets = inputs.to(device), targets.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
@@ -181,17 +181,18 @@ def run():
 
             best_acc = acc
             patience = 0
-            print(f'\033[92mBest accuracy achieved, patience reset to {early_stopping}\033[0m')
+            print(f'\033[92mBest accuracy achieved and patience reset to {early_stopping}\033[0m')
 
         else:
 
             patience += 1
-            print(f'\033[92mPatience left: {early_stopping - patience}\033[0m')
 
             if patience > early_stopping:
 
-                print(f'\033[92mTraining early stopped\033[0m')
+                print(f'\033[92mPatience consumed and training early stopped\033[0m')
                 break
+
+            print(f'\033[92mPatience left: {early_stopping - patience}\033[0m')
 
     print(f'\033[92mResults saved to {output_dir}\033[0m')
 
