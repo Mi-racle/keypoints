@@ -134,7 +134,7 @@ def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
         logger.scalar_summary(tag, value, epoch)
 
     if accuracy < best_accuracy:
-        logger.save_model(f'best_{epoch}.pt', model)
+        logger.save_model('best.pt', model)
 
     print(f'Average loss in this epoch: {loss}')
 
