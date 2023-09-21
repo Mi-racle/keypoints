@@ -127,6 +127,7 @@ class LossComputer:
         imgsz = kwargs.get('imgsz')
         grids = kwargs.get('grids')
         views = kwargs.get('views')
+        self.views = views
         # self.key_decider = ArgSoftmaxDecider(imgsz)
         # self.key_decider = GridBasedDecider(keypoints, imgsz, grids)
         # self.key_decider = GravitationDecider(keypoints, imgsz)
@@ -152,9 +153,15 @@ class LossComputer:
 
         ltran = self.distance_loss(transformed_keypoints, transformed_targets)
 
-        ledge = self.edge_loss(edge_matrices)
+        if self.views > 1:
 
-        # loss = ldis + 5e3 * lgra
-        loss = ldis + ltran + 2e3 * ledge
+            ledge = self.edge_loss(edge_matrices)
+
+            # loss = ldis + 5e3 * lgra
+            loss = ldis + ltran + 2e3 * ledge
+
+        else:
+
+            loss = ldis + ltran
 
         return loss

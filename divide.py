@@ -4,6 +4,7 @@ import random
 import shutil
 from pathlib import Path
 
+import cv2
 from tqdm import tqdm
 
 
@@ -65,6 +66,9 @@ if not os.path.exists(ROOT / 'datasets/animal/test' / 'labels'):
 
 for i, obj_path in tqdm(enumerate(obj_paths), total=len(obj_paths)):
 
+    obj = cv2.imread(obj_path.__str__())
+    obj = cv2.resize(obj, image_size)
+
     output = {'version': '5.2.1', 'flags': {}}
     shapes = []
 
@@ -96,7 +100,7 @@ for i, obj_path in tqdm(enumerate(obj_paths), total=len(obj_paths)):
 
     if set_ids[i] == 0:
 
-        shutil.copyfile(obj_path, dst_train_path)
+        cv2.imwrite(dst_train_path.__str__(), obj)
         with open(lbl_train_path, 'w') as f:
             train_json = json.dumps(output, indent=2)
             f.write(train_json)
@@ -104,7 +108,7 @@ for i, obj_path in tqdm(enumerate(obj_paths), total=len(obj_paths)):
 
     elif set_ids[i] == 1:
 
-        shutil.copyfile(obj_path, ROOT / dst_valid_path)
+        cv2.imwrite(dst_valid_path.__str__(), obj)
         with open(lbl_valid_path, 'w') as f:
             valid_json = json.dumps(output, indent=2)
             f.write(valid_json)
@@ -112,7 +116,7 @@ for i, obj_path in tqdm(enumerate(obj_paths), total=len(obj_paths)):
 
     else:
 
-        shutil.copyfile(obj_path, ROOT / dst_test_path)
+        cv2.imwrite(dst_test_path.__str__(), obj)
         with open(lbl_test_path, 'w') as f:
             test_json = json.dumps(output, indent=2)
             f.write(test_json)
