@@ -4,6 +4,8 @@ import random
 import shutil
 from pathlib import Path
 
+from tqdm import tqdm
+
 
 def get_key(dic, value):
     return list(dic.keys())[list(dic.values()).index(value)]
@@ -11,8 +13,8 @@ def get_key(dic, value):
 
 ROOT = FILE = Path(__file__).resolve().parents[0]
 
-SET_ID = [0, 1]
-SET_PROPORTION = [.65, .35]
+SET_ID = [0, 1, 2]
+SET_PROPORTION = [.625, .25, .125]
 
 image_path = ROOT / 'datasets/animal_pose/images'
 image_size = [640, 640]
@@ -31,25 +33,37 @@ fin = open(ROOT / 'datasets/animal_pose/keypoints.json', 'r')
 data = json.load(fin)
 fin.close()
 
-if not os.path.exists(ROOT / 'datasets/animal_train'):
-    os.mkdir(ROOT / 'datasets/animal_train')
+if not os.path.exists(ROOT / 'datasets/animal'):
+    os.mkdir(ROOT / 'datasets/animal')
 
-if not os.path.exists(ROOT / 'datasets/animal_train' / 'images'):
-    os.mkdir(ROOT / 'datasets/animal_train' / 'images')
+if not os.path.exists(ROOT / 'datasets/animal/train'):
+    os.mkdir(ROOT / 'datasets/animal/train')
 
-if not os.path.exists(ROOT / 'datasets/animal_train' / 'labels'):
-    os.mkdir(ROOT / 'datasets/animal_train' / 'labels')
+if not os.path.exists(ROOT / 'datasets/animal/train' / 'images'):
+    os.mkdir(ROOT / 'datasets/animal/train' / 'images')
 
-if not os.path.exists(ROOT / 'datasets/animal_test'):
-    os.mkdir(ROOT / 'datasets/animal_test')
+if not os.path.exists(ROOT / 'datasets/animal/train' / 'labels'):
+    os.mkdir(ROOT / 'datasets/animal/train' / 'labels')
 
-if not os.path.exists(ROOT / 'datasets/animal_test' / 'images'):
-    os.mkdir(ROOT / 'datasets/animal_test' / 'images')
+if not os.path.exists(ROOT / 'datasets/animal/valid'):
+    os.mkdir(ROOT / 'datasets/animal/valid')
 
-if not os.path.exists(ROOT / 'datasets/animal_test' / 'labels'):
-    os.mkdir(ROOT / 'datasets/animal_test' / 'labels')
+if not os.path.exists(ROOT / 'datasets/animal/valid' / 'images'):
+    os.mkdir(ROOT / 'datasets/animal/valid' / 'images')
 
-for i, obj_path in enumerate(obj_paths):
+if not os.path.exists(ROOT / 'datasets/animal/valid' / 'labels'):
+    os.mkdir(ROOT / 'datasets/animal/valid' / 'labels')
+
+if not os.path.exists(ROOT / 'datasets/animal/test'):
+    os.mkdir(ROOT / 'datasets/animal/test')
+
+if not os.path.exists(ROOT / 'datasets/animal/test' / 'images'):
+    os.mkdir(ROOT / 'datasets/animal/test' / 'images')
+
+if not os.path.exists(ROOT / 'datasets/animal/test' / 'labels'):
+    os.mkdir(ROOT / 'datasets/animal/test' / 'labels')
+
+for i, obj_path in tqdm(enumerate(obj_paths), total=len(obj_paths)):
 
     output = {'version': '5.2.1', 'flags': {}}
     shapes = []
@@ -71,10 +85,13 @@ for i, obj_path in enumerate(obj_paths):
 
     output['shapes'] = shapes
 
-    dst_train_path = ROOT / 'datasets/animal_train/images' / obj_path.name
+    dst_train_path = ROOT / 'datasets/animal/train/images' / obj_path.name
     lbl_train_path = dst_train_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
 
-    dst_test_path = ROOT / 'datasets/animal_test/images' / obj_path.name
+    dst_valid_path = ROOT / 'datasets/animal/valid/images' / obj_path.name
+    lbl_valid_path = dst_valid_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
+
+    dst_test_path = ROOT / 'datasets/animal/test/images' / obj_path.name
     lbl_test_path = dst_test_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
 
     if set_ids[i] == 0:
@@ -83,6 +100,14 @@ for i, obj_path in enumerate(obj_paths):
         with open(lbl_train_path, 'w') as f:
             train_json = json.dumps(output, indent=2)
             f.write(train_json)
+            f.close()
+
+    elif set_ids[i] == 1:
+
+        shutil.copyfile(obj_path, ROOT / dst_valid_path)
+        with open(lbl_valid_path, 'w') as f:
+            valid_json = json.dumps(output, indent=2)
+            f.write(valid_json)
             f.close()
 
     else:
