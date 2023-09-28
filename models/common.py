@@ -10,38 +10,48 @@ from utils import draw_heatmap, increment_path
 def autopad(k, p=None):  # kernel, padding
     # Pad to 'same'
     if p is None:
+
         p = k // 2 if isinstance(k, int) else [x // 2 for x in k]  # auto-pad
+
     return p
 
 
 class Conv(nn.Module):
     # Standard convolution
     def __init__(self, cin, cout, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
+
         super().__init__()
+
         self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
         self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
         # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
+
         return self.act(self.bn(self.conv(x)))
 
     def forward_fuse(self, x):
+
         return self.act(self.conv(x))
 
 
 class Deconv(nn.Module):
     def __init__(self, cin, cout, k=1, s=1, p=None, pout=None, g=1, act=True):
+
         super().__init__()
+
         self.deconv = nn.ConvTranspose2d(cin, cout, k, s, p, pout, g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
         self.act = nn.ReLU() if True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
+
         return self.act(self.bn(self.deconv(x)))
 
 
 class Resnet(nn.Module):
+
     def __init__(self, depth=50):
         """
         Initialize Resnet Module.
@@ -63,24 +73,33 @@ class Resnet(nn.Module):
             raise Exception('Value of \'depth\' is not valid.')
 
     def forward(self, x):
+
         return self.resnet(x)
 
 
 class CommonBlock(nn.Module):
+
     def __init__(self, cin, cout):
+
         super().__init__()
+
         self.conv = Conv(cin, cout, k=7, s=2)
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
+
         x = self.conv(x)
         x = self.pool(x)
+
         return x
 
 
 class BasicBlock(nn.Module):
+
     def __init__(self, cin, mid, cout, s=1, residual=True):
+
         super().__init__()
+
         self.residual = residual
         self.conv = Conv(cin, mid, k=3, s=s)
         self.conv2 = Conv(mid, cout, k=3, s=1, act=False)
@@ -89,13 +108,18 @@ class BasicBlock(nn.Module):
         # self.act = nn.SiLU()
 
     def forward(self, x):
+
         residual = x
         out = self.conv(x)
         out = self.conv2(out)
+
         if self.residual:
+
             if residual.size() != out.size():
+
                 residual = self.down_sample(residual)
                 out += residual
+
         return self.act(out)
 
 
@@ -178,8 +202,11 @@ class KeyResnet(nn.Module):
         }
         self.common_block = CommonBlock(3, 64)
         resnet = self.resnets.get(depth)
+
         if resnet is None:
+
             raise Exception('Value of \'depth\' is not valid.')
+
         self.layer = self._make_layer(resnet['module'], resnet['cins'][0], resnet['mids'][0], resnet['couts'][0], resnet['repeats'][0])
         self.layer2 = self._make_layer(resnet['module'], resnet['cins'][1], resnet['mids'][0], resnet['couts'][1], resnet['repeats'][1])
         self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['mids'][0], resnet['couts'][2], resnet['repeats'][2])
@@ -235,7 +262,11 @@ class KeyResnet(nn.Module):
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):
+
         layers = [module(cin, mid, cout, 2, False)]
+
         for i in range(1, repeats):
+
             layers.append(module(cout, mid, cout))
+
         return nn.Sequential(*layers)
