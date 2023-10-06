@@ -112,6 +112,7 @@ class EdgeLoss:
         for i in range(groups):  # group
 
             matrices = pred[i * self.views: (i + 1) * self.views, :, :]
+            matrices = torch.softmax(matrices, dim=-1)
             std = torch.std(matrices, dim=0)
             std = torch.mean(std)
             total += std
