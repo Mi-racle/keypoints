@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import torch
 from torch import nn
 from torchvision import models
 
@@ -252,6 +253,8 @@ class KeyResnet(nn.Module):
         p = p.transpose(1, 2).contiguous()
 
         e = p[:, :, : self.keypoints]
+        e_t = torch.transpose(e, -1, -2)
+        e = (e + e_t) / 2
 
         p = p[:, :, self.keypoints:]
 
