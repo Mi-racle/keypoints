@@ -145,7 +145,7 @@ def val(
         pred_types = classifier(edge_seqs, tgt)
 
         label_seqs = label_seqs.float()
-        acc = TypeLoss()(pred_types, label_seqs)
+        acc = TypeLoss()(pred_types, label_seqs).item()
 
         return acc
 
