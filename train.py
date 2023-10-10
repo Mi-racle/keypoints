@@ -33,6 +33,8 @@ def train(
     for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Train: ', total=len(loaded_set)):
 
         targets, label_seqs = targets
+
+        inputs, targets, label_seqs = inputs.to(device), targets.to(device), label_seqs.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
         # [batch size, augment, views, keypoints, 2] -> [batch size * augment * views, keypoints, 2]
