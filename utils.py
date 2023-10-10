@@ -120,13 +120,13 @@ def plot_images(inputs: Tensor, bkeypoints, pred_types, path: Path):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         keypoints = bkeypoints[i]
-        pred_type = pred_types[i]
+        pred_type = pred_types[i].item()
 
         for keypoint in keypoints:
 
             y, x = keypoint[0], keypoint[1]
             cv2.circle(image, (int(x), int(y)), 5, (0, 255, 0), -1)
-            cv2.putText(image, str(pred_type), (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), -1)
+            cv2.putText(image, str(pred_type), (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
         cv2.imwrite(increment_path(path / 'image.jpg').__str__(), image)
 

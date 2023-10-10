@@ -23,15 +23,17 @@ def detect(
         output_dir: Union[str, Path]
 ):
 
-    for i, (inputs, target) in tqdm(enumerate(loaded_set), desc='Detect: ', total=len(loaded_set)):
+    for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Detect: ', total=len(loaded_set)):
 
-        inputs, target = inputs.to(device), target.to(device)
+        targets, label_seqs = targets
+
+        inputs, targets = inputs.to(device), targets.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
 
         # pred: (batched heatmaps, batched keypoints, batched edge matrices)
         pred = model(inputs)
-        bkeypoints = key_decider(inputs=pred[1])
+        bkeypoints = key_decider(inputs=pred[0])
 
         graphs = make_graphs(pred[1])
         trees = get_minimum_spanning_trees(graphs)
@@ -53,6 +55,7 @@ def detect(
         tgt = torch.tensor(tgt, device=device)
 
         pred_types = classifier(edge_seqs, tgt)
+        pred_types = torch.argmax(pred_types, dim=-1)
 
         plot_images(inputs, bkeypoints, pred_types, output_dir)
 
@@ -61,8 +64,8 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train51' / 'best.pt')
-    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train51' / 'classifier.pt')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train59' / 'best.pt')
+    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train59' / 'classifier.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/testset6/test')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
@@ -104,7 +107,7 @@ def run():
     model = model.to(device)
 
     classifier = Classifier(keypoints - 1, type_num)
-    model.load_state_dict(torch.load(cweights, map_location=device))
+    classifier.load_state_dict(torch.load(cweights, map_location=device))
     classifier = classifier.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
