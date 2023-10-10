@@ -42,58 +42,6 @@ class DistanceLoss:
         return torch.mean(dis)
 
 
-class GravitationLoss:
-    def __init__(self, imgsz):
-        super(GravitationLoss, self).__init__()
-        self.distance = nn.PairwiseDistance(p=2.0)
-        self.image_size = imgsz
-
-    def __call__(self, pred, heatmap):
-
-        keypoints = pred.size(1)
-        batch_size = heatmap.size(0)
-        height = heatmap.size(-2)
-        width = heatmap.size(-1)
-        inputs = heatmap.view(batch_size, height * width)
-
-        yns = torch.linspace(0, self.image_size[0], height).view(-1, 1).repeat(1, width)
-        xns = torch.linspace(0, self.image_size[1], width).repeat(height, 1)
-        yxns = torch.cat((yns.unsqueeze(2), xns.unsqueeze(2)), dim=2).view(height * width, 2).to(pred.device)
-
-        bkforces = []
-        for i in range(batch_size):
-            kforces = []
-            for j in range(keypoints):
-                vectors = yxns - pred[i][j]  # vectors: (height * width, 2)
-                vectors = torch.mul(
-                    vectors,
-                    torch.mul(
-                        torch.pow(
-                            torch.sum(
-                                torch.pow(
-                                    vectors,
-                                    2
-                                ),
-                                -1
-                            ),
-                            -3 / 2
-                        ),
-                        inputs[i]
-                    )
-                    .view(-1, 1)
-                    .repeat(1, 2)
-                )
-                vectors = torch.sum(vectors, 0)
-                kforces.append(vectors)
-            kforces = torch.stack(kforces)
-            bkforces.append(kforces)
-        bkforces = torch.stack(bkforces)  # bkforces: (batch_size, self.keypoints, 2)
-
-        deviation = self.distance(bkforces, torch.zeros_like(pred))
-
-        return torch.sum(deviation)
-
-
 class EdgeLoss:
     def __init__(self, views: int = 1):
 
@@ -122,6 +70,20 @@ class EdgeLoss:
         return avg
 
 
+class TypeLoss:
+    def __init__(self):
+
+        super(TypeLoss, self).__init__()
+
+        self.bce = nn.BCELoss()
+
+    def __call__(self, pred, target):
+
+        loss = self.bce(pred, target)
+
+        return torch.mean(loss)
+
+
 class LossComputer:
     def __init__(self, **kwargs):
         keypoints = kwargs.get('keypoints')
@@ -135,34 +97,35 @@ class LossComputer:
         self.key_decider = OrdinaryDecider(imgsz)
 
         self.distance_loss = DistanceLoss(norm=2.0)
-        self.gravitation_loss = GravitationLoss(imgsz)
         self.edge_loss = EdgeLoss(views=views)
+        self.type_loss = TypeLoss()
 
-    def __call__(self, pred, targets, transformed_pred, transformed_targets):
+    def __call__(self, pred, targets, transformed_pred, transformed_targets, pred_types, target_types):
         # pred = self.key_decider(inputs=pred, targets=targets, mode='train')
-        heatmap = pred[0]
-        keypoints = pred[1]
-        edge_matrices = pred[2]
+        keypoints = pred[0]
+        edge_matrices = pred[1]
 
         keypoints = self.key_decider(inputs=keypoints)
 
         ldis = self.distance_loss(keypoints, targets)
-        # lgra = self.gravitation_loss(keypoints, heatmap)
 
-        transformed_keypoints = transformed_pred[1]
+        transformed_keypoints = transformed_pred[0]
         transformed_keypoints = self.key_decider(inputs=transformed_keypoints)
 
         ltran = self.distance_loss(transformed_keypoints, transformed_targets)
+
+        target_types = target_types.float()
+        ltype = self.type_loss(pred_types, target_types)
 
         if self.views > 1:
 
             ledge = self.edge_loss(edge_matrices)
 
             # loss = ldis + 5e3 * lgra
-            loss = ldis + ltran + 2e3 * ledge
+            loss = ldis + ltran + 2e3 * ledge + 2e1 * ltype
 
         else:
 
-            loss = ldis + ltran
+            loss = ldis + ltran + 2e1 * ltype
 
         return loss

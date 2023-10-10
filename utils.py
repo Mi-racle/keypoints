@@ -3,12 +3,15 @@ import os
 import re
 import time
 from pathlib import Path
+from typing import Iterable
 
 import cv2
 import numpy as np
 import torch
 from PIL import ImageDraw
 from matplotlib import pyplot as plt
+import networkx as nx
+from networkx import Graph
 from scipy.optimize import linear_sum_assignment
 from torch import Tensor
 from torchvision import transforms
@@ -101,7 +104,7 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
 #         image.save(increment_path(path / 'image.jpg'))
 
 
-def plot_images(inputs: Tensor, bkeypoints, path: Path):
+def plot_images(inputs: Tensor, bkeypoints, pred_types, path: Path):
 
     if not os.path.exists(path):
         os.mkdir(path)
@@ -109,6 +112,7 @@ def plot_images(inputs: Tensor, bkeypoints, path: Path):
     batch_size = inputs.size(0)
 
     for i in range(batch_size):
+
         image = inputs[i]
         image = torch.permute(image, (1, 2, 0))
         image = image.numpy()
@@ -116,14 +120,18 @@ def plot_images(inputs: Tensor, bkeypoints, path: Path):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         keypoints = bkeypoints[i]
+        pred_type = pred_types[i]
+
         for keypoint in keypoints:
+
             y, x = keypoint[0], keypoint[1]
             cv2.circle(image, (int(x), int(y)), 5, (0, 255, 0), -1)
+            cv2.putText(image, str(pred_type), (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), -1)
 
         cv2.imwrite(increment_path(path / 'image.jpg').__str__(), image)
 
 
-def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
+def log_epoch(logger, epoch, model, classifier, loss, accuracy, best_accuracy):
     # 1. Log scalar values (scalar summary)
     info = {
         'loss': loss,
@@ -135,23 +143,39 @@ def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
 
     if accuracy < best_accuracy:
         logger.save_model('best.pt', model)
+        logger.save_model('classifier.pt', classifier)
 
     print(f'Average loss in this epoch: {loss}')
 
 
-def kuhn_kunkres(graph: Tensor):
-    pred, match = linear_sum_assignment(graph.detach())
-    total_distance = torch.sum(graph[pred, match])
-    return torch.tensor(match), total_distance
+def make_graphs(adjacent_matrices: Tensor) -> Iterable[Graph]:
+
+    graphs = []
+
+    for i in range(adjacent_matrices.size(0)):
+
+        matrix = adjacent_matrices[i]
+        graph = nx.Graph()
+
+        for j in range(0, matrix.size(0)):
+
+            for k in range(j + 1, matrix.size(1)):
+
+                graph.add_edge(j, k, weight=matrix[j][k].item())
+
+        graphs.append(graph)
+
+    return graphs
 
 
-def make_graph(pred: Tensor, target: Tensor):
-    keypoints = pred.size(0)
-    pred = torch.unsqueeze(pred, 0)
-    pred = pred.repeat(keypoints, 1, 1)
-    pred = pred.permute(1, 0, 2)
-    vector = pred - target
-    graph = torch.pow(vector, 2)
-    graph = torch.sum(graph, -1)
-    graph = torch.sqrt(graph)
-    return graph
+def get_minimum_spanning_trees(graphs: Iterable[Graph]) -> Iterable[Graph]:
+
+    trees = []
+
+    for graph in graphs:
+
+        tree = nx.minimum_spanning_tree(graph)
+
+        trees.append(tree)
+
+    return trees

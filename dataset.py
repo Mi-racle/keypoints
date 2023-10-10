@@ -19,7 +19,8 @@ class KeyPointDataset(Dataset):
             imgsz: list,
             mode: str,
             augment: int = 0,
-            views: int = 1
+            views: int = 1,
+            type_num: int = 13,
     ):
 
         super().__init__()
@@ -33,6 +34,7 @@ class KeyPointDataset(Dataset):
         self.mode = mode
         self.augment = augment
         self.views = views
+        self.type_num = type_num
         self.obj_paths_group = []
 
         view_count = 0
@@ -57,6 +59,7 @@ class KeyPointDataset(Dataset):
 
         obj_list = []
         points_list = []
+        label_seq_list = []
 
         for i in range(self.views):
 
@@ -69,6 +72,7 @@ class KeyPointDataset(Dataset):
             obj_list.append(obj)
 
             if self.mode != 'test':
+
                 lbl_path = obj_path.parents[1] / 'labels' / (os.path.splitext(obj_path.name)[0] + '.json')
                 f = open(lbl_path, 'r')
                 dic = json.load(f)
@@ -76,15 +80,20 @@ class KeyPointDataset(Dataset):
                 points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
                 points_list.append(points)
 
+                label_seq = [0 for _ in range(self.type_num)]
+                label_seq[dic['type']] = 1
+                label_seq_list.append(label_seq)
+
         augmentor = Augmentor(views=self.views)
 
         if self.augment:
 
             obj_lists, points_lists = augmentor(obj_list, points_list, self.augment)
+            label_seq_lists = [label_seq_list for _ in range(self.augment)]
 
         else:
 
-            obj_lists, points_lists = [obj_list], [points_list]
+            obj_lists, points_lists, label_seq_lists = [obj_list], [points_list], [label_seq_list]
 
         points_lists = np.array(points_lists)
         points_lists = torch.tensor(points_lists)
@@ -93,7 +102,10 @@ class KeyPointDataset(Dataset):
         obj_lists = torch.tensor(obj_lists, dtype=torch.float32)
         obj_lists = torch.permute(obj_lists, (0, 1, 4, 2, 3))
 
-        return obj_lists, points_lists
+        label_seq_lists = np.array(label_seq_lists)
+        label_seq_lists = torch.tensor(label_seq_lists)
+
+        return obj_lists, (points_lists, label_seq_lists)
 
     def __len__(self):
 

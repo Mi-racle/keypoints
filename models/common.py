@@ -218,7 +218,7 @@ class KeyResnet(nn.Module):
         # for ArgSoftmaxDecider
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
-        self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
+        # self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
         self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints, kernel_size=1, padding=1)
         self.fc = nn.Linear(144, keypoints)
         self.sigmoid = nn.Sigmoid()
@@ -258,10 +258,10 @@ class KeyResnet(nn.Module):
 
         p = p[:, :, self.keypoints:]
 
-        x = self.penultimate_layer(x)
-        x = self.sigmoid(x)
+        # x = self.penultimate_layer(x)
+        # x = self.sigmoid(x)
 
-        return x, p, e
+        return p, e
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):
@@ -273,3 +273,28 @@ class KeyResnet(nn.Module):
             layers.append(module(cout, mid, cout))
 
         return nn.Sequential(*layers)
+
+
+class Classifier(nn.Module):
+
+    def __init__(self, edges, type_num):
+
+        super().__init__()
+
+        self.embedding = nn.Embedding(edges * 2, 128)
+        self.transformer = nn.Transformer(128, batch_first=True)
+        self.linear = nn.Linear(128, type_num)
+        self.softmax = nn.Softmax()
+
+    def forward(self, src, tgt):
+
+        src = self.embedding(src)
+        tgt = self.embedding(tgt)
+
+        outputs = self.transformer(src, tgt)
+        outputs = self.linear(outputs)
+
+        outputs = outputs[:, -1, :]
+        outputs = self.softmax(outputs)
+
+        return outputs
