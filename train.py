@@ -34,7 +34,6 @@ def train(
 
         targets, label_seqs = targets
 
-        inputs, targets, label_seqs = inputs.to(device), targets.to(device), label_seqs.to(device)
         # [batch size, augment, views, 3, height, width] -> [batch size * augment * views, 3, height, width]
         inputs = inputs.view(inputs.size(0) * inputs.size(1) * inputs.size(2), inputs.size(3), inputs.size(4), inputs.size(5))
         # [batch size, augment, views, keypoints, 2] -> [batch size * augment * views, keypoints, 2]
@@ -81,7 +80,8 @@ def train(
 
             edge_seqs.append(edge_seq)
 
-        edge_seqs = torch.tensor(edge_seqs)
+        edge_seqs = torch.tensor(edge_seqs, device=device)
+        label_seqs = label_seqs.to(device)
 
         pred_types = classifier(edge_seqs, label_seqs)
 
