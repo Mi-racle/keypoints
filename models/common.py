@@ -284,7 +284,7 @@ class Classifier(nn.Module):
         self.embedding = nn.Embedding(edges * 2, 128)
         self.transformer = nn.Transformer(128, batch_first=True)
         self.linear = nn.Linear(128, type_num)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, src, tgt):
 

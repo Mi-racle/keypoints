@@ -47,10 +47,10 @@ def detect(
 
             edge_seqs.append(edge_seq)
 
-        edge_seqs = torch.tensor(edge_seqs)
+        edge_seqs = torch.tensor(edge_seqs, device=device)
 
         tgt = [[0] for _ in range(edge_seqs.size(0))]
-        tgt = torch.tensor(tgt)
+        tgt = torch.tensor(tgt, device=device)
 
         pred_types = classifier(edge_seqs, tgt)
 
