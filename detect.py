@@ -39,7 +39,7 @@ def detect(
         edge_matrices = pred[1].view(-1, views, pred[1].size(1), pred[1].size(2))
         edge_matrices = torch.softmax(edge_matrices, dim=-1)
         edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
-        edge_matrices = edge_matrices.repeat(edge_matrices.size(0), views, edge_matrices.size(2), edge_matrices.size(3))
+        edge_matrices = edge_matrices.repeat(1, views, 1, 1)
         edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
 
         graphs = make_graphs(edge_matrices)
