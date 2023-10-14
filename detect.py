@@ -20,6 +20,7 @@ def detect(
         classifier: nn.Module,
         loaded_set: DataLoader,
         key_decider,
+        views: int,
         output_dir: Union[str, Path]
 ):
 
@@ -35,7 +36,13 @@ def detect(
         pred = model(inputs)
         bkeypoints = key_decider(inputs=pred[0])
 
-        graphs = make_graphs(pred[1])
+        edge_matrices = pred[1].view(-1, views, pred[1].size(1), pred[1].size(2))
+        edge_matrices = torch.softmax(edge_matrices, dim=-1)
+        edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
+        edge_matrices = edge_matrices.repeat(edge_matrices.size(0), views, edge_matrices.size(2), edge_matrices.size(3))
+        edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
+
+        graphs = make_graphs(edge_matrices)
         trees = get_minimum_spanning_trees(graphs)
         edge_seqs = []
 
@@ -120,7 +127,7 @@ def run():
         os.mkdir(ROOT / 'logs')
     output_dir = increment_path(ROOT / 'logs' / 'detect')
 
-    detect(device, model, classifier, loaded_set, key_decider, output_dir)
+    detect(device, model, classifier, loaded_set, key_decider, views, output_dir)
 
     print(f'\033[92mResults saved to {output_dir}\033[0m')
 
