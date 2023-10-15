@@ -290,6 +290,7 @@ class Classifier(nn.Module):
         x, hn = self.rnn(x)
         x = self.fc(x)
         x = self.softmax(x)
+        x = x.view(-1, x.size(2))
 
         return x
 
