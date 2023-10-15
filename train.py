@@ -90,7 +90,7 @@ def train(
         edge_seqs = torch.tensor(edge_seqs, device=device)
         label_seqs = label_seqs.to(device)
 
-        pred_types = classifier(edge_seqs, label_seqs)
+        pred_types = classifier(edge_seqs)
 
         loss = loss_computer(pred, targets, transformed_pred, transformed_targets, pred_types, label_seqs)
         total_loss += loss.item()
@@ -153,10 +153,7 @@ def val(
 
         edge_seqs = torch.tensor(edge_seqs, device=device)
 
-        tgt = [[0] for _ in range(edge_seqs.size(0))]
-        tgt = torch.tensor(tgt, device=device)
-
-        pred_types = classifier(edge_seqs, tgt)
+        pred_types = classifier(edge_seqs)
 
         label_seqs = label_seqs.float()
         acc = TypeLoss()(pred_types, label_seqs).item()

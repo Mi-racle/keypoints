@@ -281,20 +281,39 @@ class Classifier(nn.Module):
 
         super().__init__()
 
-        self.embedding = nn.Embedding(edges * 2, 128)
-        self.transformer = nn.Transformer(128, batch_first=True)
-        self.linear = nn.Linear(128, type_num)
-        self.softmax = nn.Softmax(dim=-1)
+        self.rnn = nn.RNN(input_size=edges * 2, hidden_size=128, batch_first=True)
+        self.fc = nn.Linear(128, type_num)
+        self.softmax = nn.Softmax()
 
-    def forward(self, src, tgt):
+    def forward(self, x):
 
-        src = self.embedding(src)
-        tgt = self.embedding(tgt)
+        x, hn = self.rnn(x)
+        x = self.fc(x)
+        x = self.softmax(x)
 
-        outputs = self.transformer(src, tgt)
-        outputs = self.linear(outputs)
+        return x
 
-        outputs = outputs[:, -1, :]
-        outputs = self.softmax(outputs)
 
-        return outputs
+# class Classifier(nn.Module):
+#
+#     def __init__(self, edges, type_num):
+#
+#         super().__init__()
+#
+#         self.embedding = nn.Embedding(edges * 2, 128)
+#         self.transformer = nn.Transformer(128, batch_first=True)
+#         self.linear = nn.Linear(128, type_num)
+#         self.softmax = nn.Softmax(dim=-1)
+#
+#     def forward(self, src, tgt):
+#
+#         src = self.embedding(src)
+#         tgt = self.embedding(tgt)
+#
+#         outputs = self.transformer(src, tgt)
+#         outputs = self.linear(outputs)
+#
+#         outputs = outputs[:, -1, :]
+#         outputs = self.softmax(outputs)
+#
+#         return outputs

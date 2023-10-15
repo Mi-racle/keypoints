@@ -58,10 +58,7 @@ def detect(
 
         edge_seqs = torch.tensor(edge_seqs, device=device)
 
-        tgt = [[0] for _ in range(edge_seqs.size(0))]
-        tgt = torch.tensor(tgt, device=device)
-
-        pred_types = classifier(edge_seqs, tgt)
+        pred_types = classifier(edge_seqs)
         pred_types = torch.argmax(pred_types, dim=-1)
 
         plot_images(inputs, bkeypoints, pred_types, output_dir)
