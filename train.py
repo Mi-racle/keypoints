@@ -85,7 +85,7 @@ def train(
                 edge_seq.append(edge[0])
                 edge_seq.append(edge[1])
 
-            edge_seqs.append(edge_seq)
+            edge_seqs.append([edge_seq])
 
         edge_seqs = torch.tensor(edge_seqs, device=device)
         label_seqs = label_seqs.to(device)
@@ -149,7 +149,7 @@ def val(
                 edge_seq.append(edge[0])
                 edge_seq.append(edge[1])
 
-            edge_seqs.append(edge_seq)
+            edge_seqs.append([edge_seq])
 
         edge_seqs = torch.tensor(edge_seqs, device=device)
 

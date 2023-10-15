@@ -54,7 +54,7 @@ def detect(
                 edge_seq.append(edge[0])
                 edge_seq.append(edge[1])
 
-            edge_seqs.append(edge_seq)
+            edge_seqs.append([edge_seq])
 
         edge_seqs = torch.tensor(edge_seqs, device=device)
 
