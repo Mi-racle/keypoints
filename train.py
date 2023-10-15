@@ -87,7 +87,7 @@ def train(
 
             edge_seqs.append([edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device)
+        edge_seqs = torch.tensor(edge_seqs, device=device).float()
         label_seqs = label_seqs.to(device)
 
         pred_types = classifier(edge_seqs)
@@ -151,7 +151,7 @@ def val(
 
             edge_seqs.append([edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device)
+        edge_seqs = torch.tensor(edge_seqs, device=device).float()
 
         pred_types = classifier(edge_seqs)
 

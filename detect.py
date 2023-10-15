@@ -56,7 +56,7 @@ def detect(
 
             edge_seqs.append([edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device)
+        edge_seqs = torch.tensor(edge_seqs, device=device).float()
 
         pred_types = classifier(edge_seqs)
         pred_types = torch.argmax(pred_types, dim=-1)
