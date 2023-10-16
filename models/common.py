@@ -281,13 +281,16 @@ class Classifier(nn.Module):
 
         super().__init__()
 
-        self.rnn = nn.RNN(input_size=edges * 2, hidden_size=128, batch_first=True)
-        self.fc = nn.Linear(128, type_num)
+        # self.rnn = nn.RNN(input_size=edges * 2, hidden_size=128, batch_first=True)
+        # self.fc = nn.Linear(128, type_num)
+        self.conv = nn.Conv1d(1, 1, 2, 2)
+        self.fc = nn.Linear(edges, type_num)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
 
-        x, hn = self.rnn(x)
+        # x, hn = self.rnn(x)
+        x = self.conv(x)
         x = self.fc(x)
         x = self.softmax(x)
         x = x.view(-1, x.size(2))
