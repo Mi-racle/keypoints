@@ -68,8 +68,8 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train59' / 'best.pt')
-    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train59' / 'classifier.pt')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train60' / 'best.pt')
+    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train60' / 'classifier.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/testset6/test')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
@@ -79,7 +79,7 @@ def parse_opt(known=False):
     parser.add_argument('--visualize', default=False, type=bool, help='visualize heatmaps or not')
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels')
     parser.add_argument('--mode', default='test', type=str, help='val or test')
-    parser.add_argument('--views', default=1, type=int)
+    parser.add_argument('--views', default=4, type=int)
     parser.add_argument('--type-num', default=13, type=int)
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()

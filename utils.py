@@ -145,6 +145,7 @@ def log_epoch(logger, epoch, model, classifier, loss, accuracy, best_accuracy):
         logger.save_model('best.pt', model)
         logger.save_model('classifier.pt', classifier)
 
+    print(f'Average accuracy in this epoch: {accuracy}')
     print(f'Average loss in this epoch: {loss}')
 
 
