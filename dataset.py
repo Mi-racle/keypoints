@@ -79,9 +79,6 @@ class KeyPointDataset(Dataset):
                 f.close()
                 points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
 
-                if len(points) != 16:
-                    print(obj_path)
-
                 points_list.append(points)
 
                 label_seq = [0 for _ in range(self.type_num)]
