@@ -121,8 +121,7 @@ class LossComputer:
 
             ledge = self.edge_loss(edge_matrices)
 
-            # loss = ldis + 5e3 * lgra
-            loss = ldis + ltran + 2e3 * ledge + 2e1 * ltype
+            loss = ldis + ltran  # + 2e3 * ledge + 2e1 * ltype
 
         else:
 
