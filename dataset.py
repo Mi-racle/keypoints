@@ -40,7 +40,7 @@ class KeyPointDataset(Dataset):
         view_count = 0
         obj_paths = []
 
-        for obj_name in os.listdir(image_path):
+        for obj_name in sorted(os.listdir(image_path)):
 
             obj_path = image_path / obj_name
             obj_paths.append(obj_path)
@@ -78,6 +78,10 @@ class KeyPointDataset(Dataset):
                 dic = json.load(f)
                 f.close()
                 points = [[shape['points'][0][1] / oh * h, shape['points'][0][0] / ow * w] for shape in dic['shapes']]
+
+                if len(points) != 16:
+                    print(obj_path)
+
                 points_list.append(points)
 
                 label_seq = [0 for _ in range(self.type_num)]
@@ -124,7 +128,7 @@ class AnimalDataset(Dataset):
         self.augment = augment
         self.obj_paths = []
 
-        for obj_name in os.listdir(image_path):
+        for obj_name in sorted(os.listdir(image_path)):
             obj_path = image_path / obj_name
             self.obj_paths.append(obj_path)
 
