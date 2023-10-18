@@ -70,7 +70,7 @@ def parse_opt(known=False):
 
     parser.add_argument('--weights', default=ROOT / 'logs' / 'train67' / 'best.pt')
     parser.add_argument('--cweights', default=ROOT / 'logs' / 'train67' / 'classifier.pt')
-    parser.add_argument('--data', default=ROOT / 'datasets/testet6/test')
+    parser.add_argument('--data', default=ROOT / 'datasets/testset6/test')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
     parser.add_argument('--depth', default=152, type=int, help='depth of Resnet, 18, 34, 50, 101, 152')

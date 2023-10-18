@@ -241,10 +241,9 @@ def run():
         print(f'Epoch {epoch}:')
         model.train()
         loss = train(device, model, classifier, loaded_set, loss_computer, optimizer, augmentor, views)
-        acc = loss
 
-        # model.eval()
-        # acc = val(device, model, classifier, loaded_valid_set, key_decider, views)
+        model.eval()
+        acc = val(device, model, classifier, loaded_valid_set, key_decider, views)
 
         log_epoch(logger, epoch, model, classifier, loss, acc, best_acc)
 
