@@ -78,19 +78,31 @@ def train(
 
         for tree in trees:
 
-            edge_seq = []
+            out_edge_seq = []
+            in_edge_seq = []
 
             for edge in sorted(tree.edges(data=True)):
 
-                edge_seq.append(edge[0])
-                edge_seq.append(edge[1])
+                out_edge_seq.append(edge[0])
+                in_edge_seq.append(edge[1])
+                out_edge_seq.append(edge[1])
+                in_edge_seq.append(edge[0])
 
-            edge_seqs.append([edge_seq])
+            edge_seqs.append([out_edge_seq, in_edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device).float()
+        edge_seqs = torch.tensor(edge_seqs, device=device).long()
+
         label_seqs = label_seqs.to(device)
 
-        pred_types = classifier(edge_seqs)
+        pred_types = []
+
+        for j in range(edge_seqs.size(0)):
+
+            pred_type = classifier(pred[2][j], edge_seqs[j], torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
+
+            pred_types.append(pred_type)
+
+        pred_types = torch.stack(pred_types)
 
         loss = loss_computer(pred, targets, transformed_pred, transformed_targets, pred_types, label_seqs)
         total_loss += loss.item()
@@ -143,17 +155,30 @@ def val(
 
         for tree in trees:
 
-            edge_seq = []
+            out_edge_seq = []
+            in_edge_seq = []
 
             for edge in sorted(tree.edges(data=True)):
-                edge_seq.append(edge[0])
-                edge_seq.append(edge[1])
+                out_edge_seq.append(edge[0])
+                in_edge_seq.append(edge[1])
+                out_edge_seq.append(edge[1])
+                in_edge_seq.append(edge[0])
 
-            edge_seqs.append([edge_seq])
+            edge_seqs.append([out_edge_seq, in_edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device).float()
+        edge_seqs = torch.tensor(edge_seqs, device=device).long()
 
-        pred_types = classifier(edge_seqs)
+        label_seqs = label_seqs.to(device)
+
+        pred_types = []
+
+        for j in range(edge_seqs.size(0)):
+            pred_type = classifier(pred[2][j], edge_seqs[j],
+                                   torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
+
+            pred_types.append(pred_type)
+
+        pred_types = torch.stack(pred_types)
 
         label_seqs = label_seqs.float()
         acc = TypeLoss()(pred_types, label_seqs).item()
@@ -177,7 +202,7 @@ def parse_opt(known=False):
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')
     parser.add_argument('--lr', default=1e-4, type=float)
     parser.add_argument('--augment', default=0, type=int, help='0 for no augmenting while positive int for augment')
-    parser.add_argument('--views', default=4, type=int, help='number of multi views')
+    parser.add_argument('--views', default=2, type=int, help='number of multi views')
     parser.add_argument('--type-num', default=13, type=int)
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
@@ -206,10 +231,10 @@ def run():
     views = opt.views
     type_num = opt.type_num
 
-    model = KeyResnet(depth, keypoints, visualize)
+    model = KeyResnet(depth, keypoints, 32, visualize)
     model = model.to(device)
 
-    classifier = Classifier(keypoints - 1, type_num)
+    classifier = Classifier(type_num, 32)
     classifier = classifier.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset

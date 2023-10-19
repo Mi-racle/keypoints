@@ -3,6 +3,7 @@ from pathlib import Path
 
 import torch
 from torch import nn
+import torch_geometric.nn as gnn
 from torchvision import models
 
 from utils import draw_heatmap, increment_path
@@ -49,6 +50,25 @@ class Deconv(nn.Module):
     def forward(self, x):
 
         return self.act(self.bn(self.deconv(x)))
+
+
+class GCNConv(nn.Module):
+    # Standard convolution
+    def __init__(self, cin, cout, act=True):  # ch_in, ch_out
+
+        super().__init__()
+
+        self.conv = gnn.GraphConv(cin, cout, bias=False)
+        self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+
+    def forward(self, x, edge_index):
+
+        return self.act(self.conv(x, edge_index))
+
+    def forward_fuse(self, x, edge_index):
+
+        return self.act(self.conv(x, edge_index))
 
 
 class Resnet(nn.Module):
@@ -158,7 +178,7 @@ class Bottleneck(nn.Module):
 
 class KeyResnet(nn.Module):
 
-    def __init__(self, depth, keypoints, visualize=False):
+    def __init__(self, depth, keypoints, features, visualize=False):
 
         super().__init__()
 
@@ -219,7 +239,7 @@ class KeyResnet(nn.Module):
         # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
         # for GridBasedDecider
         # self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
-        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints, kernel_size=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints+features, kernel_size=1, padding=1)
         self.fc = nn.Linear(144, keypoints)
         self.sigmoid = nn.Sigmoid()
 
@@ -252,16 +272,18 @@ class KeyResnet(nn.Module):
         p = self.sigmoid(p)
         p = p.transpose(1, 2).contiguous()
 
-        e = p[:, :, : self.keypoints]
-        e_t = torch.transpose(e, -1, -2)
-        e = (e + e_t) / 2
+        ew = p[:, :, 2: 2 + self.keypoints]
+        ew_t = torch.transpose(ew, -1, -2)
+        ew = (ew + ew_t) / 2
 
-        p = p[:, :, self.keypoints:]
+        pf = p[:, :, 2 + self.keypoints:]
+
+        p = p[:, :, : 2]
 
         # x = self.penultimate_layer(x)
         # x = self.sigmoid(x)
 
-        return p, e
+        return p, ew, pf
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):
@@ -277,47 +299,24 @@ class KeyResnet(nn.Module):
 
 class Classifier(nn.Module):
 
-    def __init__(self, edges, type_num):
+    def __init__(self, type_num, features):
 
         super().__init__()
 
-        # self.rnn = nn.RNN(input_size=edges * 2, hidden_size=128, batch_first=True)
-        # self.fc = nn.Linear(128, type_num)
-        self.conv = nn.Conv1d(1, 1, 2, 2)
-        self.fc = nn.Linear(edges, type_num)
+        self.conv = GCNConv(features, 64)
+        self.conv2 = GCNConv(64, 64)
+        self.conv3 = GCNConv(64, 64)
+        self.fc = nn.Linear(64, type_num)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x):
+    def forward(self, x, edge_index, batch):
 
-        # x, hn = self.rnn(x)
-        x = self.conv(x)
+        x = self.conv(x, edge_index)
+        x = self.conv2(x, edge_index)
+        x = self.conv3(x, edge_index)
+        x = gnn.global_mean_pool(x, batch)
         x = self.fc(x)
-        x = self.softmax(x)
-        x = x.view(-1, x.size(2))
+        x = self.softmax(x)[0]
 
         return x
 
-
-# class Classifier(nn.Module):
-#
-#     def __init__(self, edges, type_num):
-#
-#         super().__init__()
-#
-#         self.embedding = nn.Embedding(edges * 2, 128)
-#         self.transformer = nn.Transformer(128, batch_first=True)
-#         self.linear = nn.Linear(128, type_num)
-#         self.softmax = nn.Softmax(dim=-1)
-#
-#     def forward(self, src, tgt):
-#
-#         src = self.embedding(src)
-#         tgt = self.embedding(tgt)
-#
-#         outputs = self.transformer(src, tgt)
-#         outputs = self.linear(outputs)
-#
-#         outputs = outputs[:, -1, :]
-#         outputs = self.softmax(outputs)
-#
-#         return outputs

@@ -48,18 +48,30 @@ def detect(
 
         for tree in trees:
 
-            edge_seq = []
+            out_edge_seq = []
+            in_edge_seq = []
 
             for edge in sorted(tree.edges(data=True)):
-                edge_seq.append(edge[0])
-                edge_seq.append(edge[1])
+                out_edge_seq.append(edge[0])
+                in_edge_seq.append(edge[1])
+                out_edge_seq.append(edge[1])
+                in_edge_seq.append(edge[0])
 
-            edge_seqs.append([edge_seq])
+            edge_seqs.append([out_edge_seq, in_edge_seq])
 
-        edge_seqs = torch.tensor(edge_seqs, device=device).float()
+        edge_seqs = torch.tensor(edge_seqs, device=device).long()
 
-        pred_types = classifier(edge_seqs)
-        pred_types = torch.argmax(pred_types, dim=-1)
+        label_seqs = label_seqs.to(device)
+
+        pred_types = []
+
+        for j in range(edge_seqs.size(0)):
+            pred_type = classifier(pred[2][j], edge_seqs[j],
+                                   torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
+
+            pred_types.append(pred_type)
+
+        pred_types = torch.stack(pred_types)
 
         plot_images(inputs, bkeypoints, pred_types, output_dir)
 
@@ -68,8 +80,8 @@ def parse_opt(known=False):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--weights', default=ROOT / 'logs' / 'train68' / 'best.pt')
-    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train68' / 'classifier.pt')
+    parser.add_argument('--weights', default=ROOT / 'logs' / 'train69' / 'best.pt')
+    parser.add_argument('--cweights', default=ROOT / 'logs' / 'train69' / 'classifier.pt')
     parser.add_argument('--data', default=ROOT / 'datasets/testset6/test')
     parser.add_argument('--batchsz', default=1, type=int)
     parser.add_argument('--device', default='cpu', help='cpu or 0 (cuda)')
@@ -106,11 +118,11 @@ def run():
     views = opt.views
     type_num = opt.type_num
 
-    model = KeyResnet(depth, keypoints, visualize)
+    model = KeyResnet(depth, keypoints, 32, visualize)
     model.load_state_dict(torch.load(weights, map_location=device))
     model = model.to(device)
 
-    classifier = Classifier(keypoints - 1, type_num)
+    classifier = Classifier(type_num, 32)
     classifier.load_state_dict(torch.load(cweights, map_location=device))
     classifier = classifier.to(device)
 
