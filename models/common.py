@@ -26,7 +26,7 @@ class Conv(nn.Module):
 
         self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
-        self.act = nn.LeakyReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
         # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
