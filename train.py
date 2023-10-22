@@ -154,8 +154,7 @@ def run():
     views = opt.views
     type_num = opt.type_num
 
-    # model = KeyResnet(depth, views, type_num)
-    model = Resnet(depth, type_num)
+    model = KeyResnet(depth, views, type_num)
     model = model.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
