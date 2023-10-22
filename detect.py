@@ -34,46 +34,8 @@ def detect(
 
         # pred: (batched heatmaps, batched keypoints, batched edge matrices)
         pred = model(inputs)
-        bkeypoints = key_decider(inputs=pred[0])
 
-        edge_matrices = pred[1].view(-1, views, pred[1].size(1), pred[1].size(2))
-        edge_matrices = torch.softmax(edge_matrices, dim=-1)
-        edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
-        edge_matrices = edge_matrices.repeat(1, views, 1, 1)
-        edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
-
-        graphs = make_graphs(edge_matrices)
-        trees = get_minimum_spanning_trees(graphs)
-        edge_seqs = []
-
-        for tree in trees:
-
-            out_edge_seq = []
-            in_edge_seq = []
-
-            for edge in sorted(tree.edges(data=True)):
-                out_edge_seq.append(edge[0])
-                in_edge_seq.append(edge[1])
-                out_edge_seq.append(edge[1])
-                in_edge_seq.append(edge[0])
-
-            edge_seqs.append([out_edge_seq, in_edge_seq])
-
-        edge_seqs = torch.tensor(edge_seqs, device=device).long()
-
-        label_seqs = label_seqs.to(device)
-
-        pred_types = []
-
-        for j in range(edge_seqs.size(0)):
-            pred_type = classifier(pred[2][j], edge_seqs[j],
-                                   torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
-
-            pred_types.append(pred_type)
-
-        pred_types = torch.stack(pred_types)
-
-        plot_images(inputs, bkeypoints, pred_types, output_dir)
+        plot_images(inputs, pred, output_dir)
 
 
 def parse_opt(known=False):
@@ -118,7 +80,7 @@ def run():
     views = opt.views
     type_num = opt.type_num
 
-    model = KeyResnet(depth, keypoints, 32, visualize)
+    model = KeyResnet(depth, views, type_num, visualize=visualize)
     model.load_state_dict(torch.load(weights, map_location=device))
     model = model.to(device)
 

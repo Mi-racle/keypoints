@@ -26,7 +26,7 @@ class Conv(nn.Module):
 
         self.conv = nn.Conv2d(cin, cout, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(cout)
-        self.act = nn.ReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        self.act = nn.LeakyReLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
         # self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
@@ -178,11 +178,11 @@ class Bottleneck(nn.Module):
 
 class KeyResnet(nn.Module):
 
-    def __init__(self, depth, keypoints, features, visualize=False):
+    def __init__(self, depth, views=1, type_num=1, visualize=False):
 
         super().__init__()
 
-        self.keypoints = keypoints
+        self.views = views
         self.visualize = visualize
         self.resnets = {
             18: {
@@ -232,28 +232,19 @@ class KeyResnet(nn.Module):
         self.layer2 = self._make_layer(resnet['module'], resnet['cins'][1], resnet['mids'][0], resnet['couts'][1], resnet['repeats'][1])
         self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['mids'][0], resnet['couts'][2], resnet['repeats'][2])
         self.layer4 = self._make_layer(resnet['module'], resnet['cins'][3], resnet['mids'][0], resnet['couts'][3], resnet['repeats'][3])
-        # self.deconv = Deconv(cin=resnet['couts'][3], cout=256, k=3, s=2, p=1, pout=1)
-        # self.deconv2 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
-        # self.deconv3 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
-        # for ArgSoftmaxDecider
-        # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
-        # for GridBasedDecider
-        # self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
-        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints+features, kernel_size=1, padding=1)
-        self.fc = nn.Linear(144, keypoints)
-        self.sigmoid = nn.Sigmoid()
+        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(resnet['couts'][3] * 2, type_num)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x):
+
+        assert x.size(0) % self.views == 0
 
         x = self.common_block(x)
         x = self.layer(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        p = self.layer4(x)
-        # x = self.deconv(x)
-        # x = self.deconv2(x)
-        # x = self.deconv3(x)
-        p = self.final_layer(p)
+        x = self.layer4(x)
 
         if self.visualize:
 
@@ -267,23 +258,30 @@ class KeyResnet(nn.Module):
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
-        p = p.view(p.size(0), p.size(1), -1).contiguous()
-        p = self.fc(p)
-        p = self.sigmoid(p)
-        p = p.transpose(1, 2).contiguous()
+        # [batch size, resnet['couts'][3], height, width]
 
-        ew = p[:, :, 2: 2 + self.keypoints]
-        ew_t = torch.transpose(ew, -1, -2)
-        ew = (ew + ew_t) / 2
+        out = []
 
-        pf = p[:, :, 2 + self.keypoints:]
+        for i in range(x.size(0)):
 
-        p = p[:, :, : 2]
+            t = torch.concat(
+                [
+                    x[i],
+                    torch.sum(x[i + 1: i + self.views, :, :, :], dim=0)
+                ],
+                dim=0
+            )
 
-        # x = self.penultimate_layer(x)
-        # x = self.sigmoid(x)
+            out.append(t)
 
-        return p, ew, pf
+        x = torch.stack(out, dim=0)
+
+        x = self.avg_pool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
+        x = self.softmax(x)
+
+        return x
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):

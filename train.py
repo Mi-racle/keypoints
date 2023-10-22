@@ -10,23 +10,21 @@ from tqdm import tqdm
 import numpy as np
 
 from augmentor import Augmentor
-from dataset import KeyPointDataset, AnimalDataset
+from dataset import KeyPointDataset
 from keydeciders import OrdinaryDecider
 from logger import Logger
 from loss import LossComputer, DistanceLoss, TypeLoss
-from models.common import KeyResnet, Classifier
+from models.common import KeyResnet, Classifier, Resnet
 from utils import log_epoch, ROOT, increment_path, make_graphs, get_minimum_spanning_trees
 
 
 def train(
         device: torch.device,
         model: nn.Module,
-        classifier: nn.Module,
         loaded_set: DataLoader,
         loss_computer: LossComputer,
         optimizer: Optimizer,
         augmentor: Augmentor,
-        views: int,
 ):
 
     total_loss = 0
@@ -66,45 +64,9 @@ def train(
 
         transformed_pred = model(transformed_inputs)
 
-        edge_matrices = pred[1].view(-1, views, pred[1].size(1), pred[1].size(2))
-        edge_matrices = torch.softmax(edge_matrices, dim=-1)
-        edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
-        edge_matrices = edge_matrices.repeat(1, views, 1, 1)
-        edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
-
-        graphs = make_graphs(edge_matrices)
-        trees = get_minimum_spanning_trees(graphs)
-        edge_seqs = []
-
-        for tree in trees:
-
-            out_edge_seq = []
-            in_edge_seq = []
-
-            for edge in sorted(tree.edges(data=True)):
-
-                out_edge_seq.append(edge[0])
-                in_edge_seq.append(edge[1])
-                out_edge_seq.append(edge[1])
-                in_edge_seq.append(edge[0])
-
-            edge_seqs.append([out_edge_seq, in_edge_seq])
-
-        edge_seqs = torch.tensor(edge_seqs, device=device).long()
-
         label_seqs = label_seqs.to(device)
 
-        pred_types = []
-
-        for j in range(edge_seqs.size(0)):
-
-            pred_type = classifier(pred[2][j], edge_seqs[j], torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
-
-            pred_types.append(pred_type)
-
-        pred_types = torch.stack(pred_types)
-
-        loss = loss_computer(pred, targets, transformed_pred, transformed_targets, pred_types, label_seqs)
+        loss = loss_computer(pred, transformed_pred, label_seqs)
         total_loss += loss.item()
         # print(loss.item())
 
@@ -120,10 +82,7 @@ def train(
 def val(
         device: torch.device,
         model: nn.Module,
-        classifier: nn.Module,
         loaded_set: DataLoader,
-        key_decider,
-        views: int,
 ):
 
     for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Val: ', total=len(loaded_set)):
@@ -143,45 +102,9 @@ def val(
         # acc = DistanceLoss(norm=2.0)(bkeypoints, targets)
         # acc = acc.item()
 
-        edge_matrices = pred[1].view(-1, views, pred[1].size(1), pred[1].size(2))
-        edge_matrices = torch.softmax(edge_matrices, dim=-1)
-        edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
-        edge_matrices = edge_matrices.repeat(1, views, 1, 1)
-        edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
-
-        graphs = make_graphs(edge_matrices)
-        trees = get_minimum_spanning_trees(graphs)
-        edge_seqs = []
-
-        for tree in trees:
-
-            out_edge_seq = []
-            in_edge_seq = []
-
-            for edge in sorted(tree.edges(data=True)):
-                out_edge_seq.append(edge[0])
-                in_edge_seq.append(edge[1])
-                out_edge_seq.append(edge[1])
-                in_edge_seq.append(edge[0])
-
-            edge_seqs.append([out_edge_seq, in_edge_seq])
-
-        edge_seqs = torch.tensor(edge_seqs, device=device).long()
-
         label_seqs = label_seqs.to(device)
 
-        pred_types = []
-
-        for j in range(edge_seqs.size(0)):
-            pred_type = classifier(pred[2][j], edge_seqs[j],
-                                   torch.stack([torch.argmax(label_seqs[j]) for _ in range(16)]))
-
-            pred_types.append(pred_type)
-
-        pred_types = torch.stack(pred_types)
-
-        label_seqs = label_seqs.float()
-        acc = TypeLoss()(pred_types, label_seqs).item()
+        acc = TypeLoss()(pred, label_seqs).item()
 
         return acc
 
@@ -202,7 +125,7 @@ def parse_opt(known=False):
     parser.add_argument('--imgsz', default=[640], type=int, nargs='+', help='pixels of width and height')
     parser.add_argument('--lr', default=1e-4, type=float)
     parser.add_argument('--augment', default=0, type=int, help='0 for no augmenting while positive int for augment')
-    parser.add_argument('--views', default=2, type=int, help='number of multi views')
+    parser.add_argument('--views', default=4, type=int, help='number of multi views')
     parser.add_argument('--type-num', default=13, type=int)
 
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
@@ -231,18 +154,15 @@ def run():
     views = opt.views
     type_num = opt.type_num
 
-    model = KeyResnet(depth, keypoints, 32, visualize)
+    model = KeyResnet(depth, views, type_num)
     model = model.to(device)
-
-    classifier = Classifier(type_num, 32)
-    classifier = classifier.to(device)
 
     absolute_set = dataset if Path(dataset).is_absolute() else ROOT / dataset
     data = KeyPointDataset(absolute_set, imgsz, 'train', augment, views, type_num)
-    # data = AnimalDataset(absolute_set, imgsz, 'train', augment)
     loaded_set = DataLoader(dataset=data, batch_size=batch_size)
+
     absolute_valid_set = (dataset if Path(dataset).is_absolute() else ROOT / dataset).parents[0] / 'valid'
-    valid_data = KeyPointDataset(absolute_valid_set, imgsz, 'valid', type_num=type_num)
+    valid_data = KeyPointDataset(absolute_valid_set, imgsz, 'valid', views=views, type_num=type_num)
     loaded_valid_set = DataLoader(dataset=valid_data, batch_size=batch_size)
 
     key_decider = OrdinaryDecider(imgsz)
@@ -265,12 +185,13 @@ def run():
 
         print(f'Epoch {epoch}:')
         model.train()
-        loss = train(device, model, classifier, loaded_set, loss_computer, optimizer, augmentor, views)
+        loss = train(device, model, loaded_set, loss_computer, optimizer, augmentor)
 
         model.eval()
-        acc = val(device, model, classifier, loaded_valid_set, key_decider, views)
+        # acc = val(device, model, loaded_valid_set)
+        acc = loss
 
-        log_epoch(logger, epoch, model, classifier, loss, acc, best_acc)
+        log_epoch(logger, epoch, model, loss, acc, best_acc)
 
         if acc < best_acc:
 

@@ -100,32 +100,11 @@ class LossComputer:
         self.edge_loss = EdgeLoss(views=views)
         self.type_loss = TypeLoss()
 
-    def __call__(self, pred, targets, transformed_pred, transformed_targets, pred_types, target_types):
-        # pred = self.key_decider(inputs=pred, targets=targets, mode='train')
-        keypoints = pred[0]
-        edge_matrices = pred[1]
+    def __call__(self, pred, transformed_pred, target_types):
 
-        keypoints = self.key_decider(inputs=keypoints)
+        ltype = self.type_loss(pred, target_types)
+        ltype2 = self.type_loss(transformed_pred, target_types)
 
-        ldis = self.distance_loss(keypoints, targets)
-
-        transformed_keypoints = transformed_pred[0]
-        transformed_keypoints = self.key_decider(inputs=transformed_keypoints)
-
-        ltran = self.distance_loss(transformed_keypoints, transformed_targets)
-
-        target_types = target_types.float()
-        ltype = self.type_loss(pred_types, target_types)
-
-        if self.views > 1:
-
-            ledge = self.edge_loss(edge_matrices)
-
-            # loss = ldis + ltran + 2e3 * ledge + 2e1 * ltype
-            loss = ldis + ltran + 5e2 * ledge + 2e1 * ltype
-
-        else:
-
-            loss = ldis + ltran + 2e1 * ltype
+        loss = ltype + ltype2
 
         return loss
