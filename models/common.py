@@ -73,7 +73,7 @@ class GCNConv(nn.Module):
 
 class Resnet(nn.Module):
 
-    def __init__(self, depth=50):
+    def __init__(self, depth=50, type_num=1):
         """
         Initialize Resnet Module.
 
@@ -81,15 +81,15 @@ class Resnet(nn.Module):
         """
         super().__init__()
         if depth == 18:
-            self.resnet = models.resnet18()
+            self.resnet = models.resnet18(num_classes=type_num)
         elif depth == 34:
-            self.resnet = models.resnet34()
+            self.resnet = models.resnet34(num_classes=type_num)
         elif depth == 50:
-            self.resnet = models.resnet50()
+            self.resnet = models.resnet50(num_classes=type_num)
         elif depth == 101:
-            self.resnet = models.resnet101()
+            self.resnet = models.resnet101(num_classes=type_num)
         elif depth == 152:
-            self.resnet = models.resnet152()
+            self.resnet = models.resnet152(num_classes=type_num)
         else:
             raise Exception('Value of \'depth\' is not valid.')
 
