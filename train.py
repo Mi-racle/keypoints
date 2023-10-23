@@ -87,6 +87,8 @@ def val(
         loaded_set: DataLoader
 ):
 
+    total, right = 0, 0
+
     for i, (inputs, targets) in tqdm(enumerate(loaded_set), desc='Val: ', total=len(loaded_set)):
 
         targets, label_seqs = targets
@@ -113,8 +115,6 @@ def val(
 
         pred_types = []
 
-        total, right = 0, 0
-
         for j in range(edge_seqs.size(0)):
 
             pred_type = classifier(node_features[j], edge_seqs[j],
@@ -131,10 +131,10 @@ def val(
         pred_types = torch.stack(pred_types)
 
         label_seqs = label_seqs.float()
-        # acc = TypeLoss()(pred_types, label_seqs).item()
-        acc = right / total
+    # acc = TypeLoss()(pred_types, label_seqs).item()
+    acc = right / total
 
-        return acc
+    return acc
 
 
 def parse_opt(known=False):
