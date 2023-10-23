@@ -101,7 +101,7 @@ def increment_path(dst_path, exist_ok=False, sep='', mkdir=False):
 #         image.save(increment_path(path / 'image.jpg'))
 
 
-def plot_images(inputs: Tensor, pred, path: Path):
+def plot_images(inputs: Tensor, bkeypoints, pred_types, path: Path):
 
     if not os.path.exists(path):
         os.mkdir(path)
@@ -116,15 +116,19 @@ def plot_images(inputs: Tensor, pred, path: Path):
         image = cv2.UMat(image)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        predi = pred[i]
-        pred_type = torch.argmax(predi, dim=-1).item()
-        prop = predi[pred_type].item()
+        keypoints = bkeypoints[i]
+        pred_type = pred_types[i].item()
 
-        cv2.putText(image, f'{str(pred_type)}: {str(prop)}', (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        for keypoint in keypoints:
+
+            y, x = keypoint[0], keypoint[1]
+            cv2.circle(image, (int(x), int(y)), 5, (0, 255, 0), -1)
+
+        cv2.putText(image, str(pred_type), (2, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
         cv2.imwrite(increment_path(path / 'image.jpg').__str__(), image)
 
 
-def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
+def log_epoch(logger, epoch, model, classifier, loss, accuracy, best_accuracy):
     # 1. Log scalar values (scalar summary)
     info = {
         'loss': loss,
@@ -134,8 +138,9 @@ def log_epoch(logger, epoch, model, loss, accuracy, best_accuracy):
     for tag, value in info.items():
         logger.scalar_summary(tag, value, epoch)
 
-    if accuracy < best_accuracy:
+    if accuracy > best_accuracy:
         logger.save_model('best.pt', model)
+        logger.save_model('classifier.pt', classifier)
 
     print(f'Average accuracy in this epoch: {accuracy}')
     print(f'Average loss in this epoch: {loss}')
