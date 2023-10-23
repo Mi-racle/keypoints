@@ -73,7 +73,7 @@ class GCNConv(nn.Module):
 
 class Resnet(nn.Module):
 
-    def __init__(self, depth=50, type_num=1):
+    def __init__(self, depth=50):
         """
         Initialize Resnet Module.
 
@@ -81,15 +81,15 @@ class Resnet(nn.Module):
         """
         super().__init__()
         if depth == 18:
-            self.resnet = models.resnet18(num_classes=type_num)
+            self.resnet = models.resnet18()
         elif depth == 34:
-            self.resnet = models.resnet34(num_classes=type_num)
+            self.resnet = models.resnet34()
         elif depth == 50:
-            self.resnet = models.resnet50(num_classes=type_num)
+            self.resnet = models.resnet50()
         elif depth == 101:
-            self.resnet = models.resnet101(num_classes=type_num)
+            self.resnet = models.resnet101()
         elif depth == 152:
-            self.resnet = models.resnet152(num_classes=type_num)
+            self.resnet = models.resnet152()
         else:
             raise Exception('Value of \'depth\' is not valid.')
 
@@ -178,11 +178,11 @@ class Bottleneck(nn.Module):
 
 class KeyResnet(nn.Module):
 
-    def __init__(self, depth, views=1, type_num=1, visualize=False):
+    def __init__(self, depth, keypoints, visualize=False):
 
         super().__init__()
 
-        self.views = views
+        self.keypoints = keypoints
         self.visualize = visualize
         self.resnets = {
             18: {
@@ -232,19 +232,28 @@ class KeyResnet(nn.Module):
         self.layer2 = self._make_layer(resnet['module'], resnet['cins'][1], resnet['mids'][0], resnet['couts'][1], resnet['repeats'][1])
         self.layer3 = self._make_layer(resnet['module'], resnet['cins'][2], resnet['mids'][0], resnet['couts'][2], resnet['repeats'][2])
         self.layer4 = self._make_layer(resnet['module'], resnet['cins'][3], resnet['mids'][0], resnet['couts'][3], resnet['repeats'][3])
-        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(resnet['couts'][3] * 2, type_num)
-        self.softmax = nn.Softmax(dim=-1)
+        # self.deconv = Deconv(cin=resnet['couts'][3], cout=256, k=3, s=2, p=1, pout=1)
+        # self.deconv2 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
+        # self.deconv3 = Deconv(cin=256, cout=256, k=3, s=2, p=1, pout=1)
+        # for ArgSoftmaxDecider
+        # self.final_layer = nn.Conv2d(in_channels=256, out_channels=keypoints * 2, kernel_size=1, stride=1, padding=1)
+        # for GridBasedDecider
+        # self.penultimate_layer = nn.Conv2d(in_channels=resnet['couts'][2], out_channels=1, kernel_size=1, padding=1)
+        self.final_layer = nn.Conv2d(in_channels=resnet['couts'][3], out_channels=2+keypoints, kernel_size=1, padding=1)
+        self.fc = nn.Linear(144, keypoints)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-
-        assert x.size(0) % self.views == 0
 
         x = self.common_block(x)
         x = self.layer(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        p = self.layer4(x)
+        # x = self.deconv(x)
+        # x = self.deconv2(x)
+        # x = self.deconv3(x)
+        p = self.final_layer(p)
 
         if self.visualize:
 
@@ -258,30 +267,21 @@ class KeyResnet(nn.Module):
             dst_path = increment_path(root / 'heatmaps/heatmap.jpg')
             draw_heatmap(4, 4, x.detach().numpy(), dst_path)
 
-        # [batch size, resnet['couts'][3], height, width]
+        p = p.view(p.size(0), p.size(1), -1).contiguous()
+        p = self.fc(p)
+        p = self.sigmoid(p)
+        p = p.transpose(1, 2).contiguous()
 
-        out = []
+        ew = p[:, :, 2: 2 + self.keypoints]
+        ew_t = torch.transpose(ew, -1, -2)
+        ew = (ew + ew_t) / 2
 
-        for i in range(x.size(0)):
+        p = p[:, :, : 2]
 
-            t = torch.concat(
-                [
-                    x[i],
-                    torch.sum(x[i + 1: i + self.views, :, :, :], dim=0)
-                ],
-                dim=0
-            )
+        # x = self.penultimate_layer(x)
+        # x = self.sigmoid(x)
 
-            out.append(t)
-
-        x = torch.stack(out, dim=0)
-
-        x = self.avg_pool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-        x = self.softmax(x)
-
-        return x
+        return p, ew
 
     @staticmethod
     def _make_layer(module, cin, mid, cout, repeats):

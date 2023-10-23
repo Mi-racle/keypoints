@@ -6,15 +6,12 @@ from pathlib import Path
 from typing import Iterable
 
 import cv2
+import networkx as nx
 import numpy as np
 import torch
-from PIL import ImageDraw
 from matplotlib import pyplot as plt
-import networkx as nx
 from networkx import Graph
-from scipy.optimize import linear_sum_assignment
 from torch import Tensor
-from torchvision import transforms
 
 ROOT = FILE = Path(__file__).resolve().parents[0]
 
@@ -175,3 +172,62 @@ def get_minimum_spanning_trees(graphs: Iterable[Graph]) -> Iterable[Graph]:
         trees.append(tree)
 
     return trees
+
+
+def get_node_features(pred):
+
+    return pred
+
+
+def get_edge_seqs(pred, views):
+
+    edge_matrices = pred.view(-1, views, pred.size(1), pred.size(2))
+    edge_matrices = torch.softmax(edge_matrices, dim=-1)
+    edge_matrices = torch.mean(edge_matrices, dim=1, keepdim=True)
+    edge_matrices = edge_matrices.repeat(1, views, 1, 1)
+    edge_matrices = edge_matrices.view(-1, edge_matrices.size(2), edge_matrices.size(3))
+
+    graphs = make_graphs(edge_matrices)
+    trees = get_minimum_spanning_trees(graphs)
+
+    edge_seqs = []
+
+    for tree in trees:
+
+        out_edge_seq = []
+        in_edge_seq = []
+
+        for edge in sorted(tree.edges(data=True)):
+
+            out_edge_seq.append(edge[0])
+            in_edge_seq.append(edge[1])
+            out_edge_seq.append(edge[1])
+            in_edge_seq.append(edge[0])
+
+        edge_seqs.append([out_edge_seq, in_edge_seq])
+
+    edge_seqs = torch.tensor(edge_seqs, dtype=torch.long)
+
+    return edge_seqs
+
+
+def get_transformed_data(inputs, targets, augmentor):
+
+    ndarray_inputs = torch.permute(inputs, (0, 2, 3, 1)).numpy()
+    transformed_inputs = []
+    transformed_targets = []
+
+    for j in range(ndarray_inputs.shape[0]):
+
+        ndarray_input, target = ndarray_inputs[j], targets[j]
+        ndarray_input, target = augmentor([ndarray_input], [target], 1)
+        ndarray_input, target = ndarray_input[0][0], target[0][0]
+
+        transformed_inputs.append(ndarray_input)
+        transformed_targets.append(target)
+
+    transformed_inputs, transformed_targets = np.array(transformed_inputs), np.array(transformed_targets)
+    transformed_inputs, transformed_targets = torch.tensor(transformed_inputs), torch.tensor(transformed_targets)
+    transformed_inputs = torch.permute(transformed_inputs, (0, 3, 1, 2))
+
+    return transformed_inputs, transformed_targets
